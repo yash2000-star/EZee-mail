@@ -4,9 +4,12 @@ import Sidebar from "@/components/Sidebar";
 import EmailFeed from "@/components/EmailFeed";
 import ReadingPane from "@/components/ReadingPane";
 import AiChat from "@/components/AiChat";
+import ComposeModal from "@/components/ComposeModal";
+import SettingsModal from "@/components/SettingsModal";
 
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
+import { Sparkles, X } from "lucide-react"; 
 
 export default function Home() {
   const { data: session } = useSession();
@@ -16,6 +19,11 @@ export default function Home() {
   // The memory for the right-hand reading pane!
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [activeMailbox, setActiveMailbox] = useState("Inbox");
+  const [draftData, setDraftData] = useState({ to: "", subject: "", body: "" });
+  const [isAiThinking, setIsAiThinking] = useState(false); 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
 
   //Find a specific header from the list
@@ -90,14 +98,32 @@ export default function Home() {
     return "No readable content found.";
   };
 
-  const fetchEmails = async () => {
+  const fetchEmails = async (mailboxToFetch = activeMailbox, searchString = "") => {
     // Safety Check
     if (!(session as any)?.accessToken) return;
     setIsFetching(true);
 
+    let query = "in:inbox";
+    if (mailboxToFetch === "Starred") query = "is:starred";
+    if (mailboxToFetch === "Sent") query = "in:sent";
+    if (mailboxToFetch === "Draft") query = "is:draft";
+    if (mailboxToFetch === "Spam") query = "in:spam";
+    if (mailboxToFetch === "Trash") query = "in:trash";
+    if (mailboxToFetch === "Conversation History") query = 'label:"Conversation History"';
+    if (mailboxToFetch === "GMass Auto Followup") query = 'label:"GMass Auto Followup"';
+    if (mailboxToFetch === "GMass Reports") query = 'label:"GMass Reports"';
+    if (mailboxToFetch === "GMass Scheduled") query = 'label:"GMass Scheduled"';
+
+    // GLOBAL SEARCH ENGINe
+    if (searchString.trim() !== "") {
+       query += ` ${searchString}`; 
+    }
+
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&q=${encodeURIComponent(query)}`;
+
     // Knock on Google's door
     const response = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5",
+      url,
       {
         headers: { Authorization: `Bearer ${(session as any).accessToken}` },
       },
@@ -125,7 +151,13 @@ export default function Home() {
         snippet: msg.snippet,
         subject: getHeader(msg.payload.headers, "Subject"),
         from: getHeader(msg.payload.headers, "From").split("<")[0].trim(),
+        date: getHeader(msg.payload.headers, "Date"),
         body: getEmailBody(msg.payload),
+        isUnread: msg.labelIds?.includes("UNREAD") || false,
+        isStarred: msg.labelIds?.includes("STARRED") || false,
+        to: getHeader(msg.payload.headers, "To"),
+        cc: getHeader(msg.payload.headers, "Cc"),
+        hasAttachment: msg.payload.parts?.some((part: any) => part.filename && part.filename.length > 0) || false,
       }));
 
       // 1. Show emails on screen immediately
@@ -172,6 +204,76 @@ export default function Home() {
     }
   };
 
+  // Quick action 
+  const handleEmailAction = async (id: string, action: string) => {
+    if (action === "trash" || action === "archive" || action === "unarchive") {
+      setEmails((prev) => prev.filter((email) => email.id !== id));
+      if (selectedEmail?.id === id) setSelectedEmail(null);
+    } 
+    else if (action === "unread") {
+      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isUnread: true } : email));
+    } 
+    else if (action === "read") {
+      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isUnread: false } : email));
+
+    } 
+    else if (action === "star") {
+      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isStarred: true } : email));
+      if (selectedEmail?.id === id) setSelectedEmail({ ...selectedEmail, isStarred: true });
+    } 
+    else if (action === "unstar") {
+      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isStarred: false } : email));
+      if (selectedEmail?.id === id) setSelectedEmail({ ...selectedEmail, isStarred: false });
+    }
+
+    try {
+      await fetch("/api/action", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(session as any).accessToken}`,
+        },
+        body: JSON.stringify({ id, action }),
+      });
+    } catch (error) {
+      console.error(`Failed to ${action} email:`, error);
+    }
+  };
+
+  // THE AI AUTO-REPLY ENGINE
+  const handleAiReply = async (email: any) => {
+    setIsAiThinking(true); 
+    
+    try {
+      const senderName = email.from.split("<")[0].replace(/"/g, "").trim();
+      const senderEmail = email.from.match(/<(.*)>/)?.[1] || email.from;
+
+      const response = await fetch("/api/ai/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailBody: email.body, senderName }),
+      });
+
+      const data = await response.json();
+
+      if (data.reply) {
+        setDraftData({
+          to: senderEmail,
+          subject: `Re: ${email.subject.replace(/^(Re:\s*)+/i, '')}`, // Adds Re: smartly
+          body: data.reply,
+        });
+        
+        
+        setIsComposeOpen(true);
+      }
+    } catch (error) {
+      console.error("AI Reply failed:", error);
+      alert("AI failed to generate a reply. Please try again.");
+    } finally {
+      setIsAiThinking(false); 
+    }
+  };
+
   useEffect(() => {
     if((session as any)?.accessToken && emails.length === 0 && !isFetching){
       fetchEmails();
@@ -183,7 +285,17 @@ export default function Home() {
       //  Locks the screen height
       <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden selection:bg-purple-500/30 relative">
         {/* Sidebar (Left) */}
-        <Sidebar />
+        <Sidebar 
+        onCompose={() => setIsComposeOpen(true)} 
+        activeMailbox={activeMailbox}
+        onSelectMailbox={(folderName) => {
+          setActiveMailbox(folderName);
+          setSelectedEmail(null);
+          setEmails([]);
+          fetchEmails(folderName);
+        }}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        />
 
         {/* The Email Feed */}
         <EmailFeed
@@ -192,6 +304,9 @@ export default function Home() {
           onSelect={setSelectedEmail}
           onRefresh={fetchEmails} 
           isSyncing={isFetching}
+          onOpenAi={() => setIsAiChatOpen(true)}
+          onAction={handleEmailAction}
+          onSearch={(searchWord) => fetchEmails(activeMailbox, searchWord)}
         />
 
         {/* The Reading Pane */}
@@ -200,9 +315,43 @@ export default function Home() {
           getBadgeStyle={getBadgeStyle}
           onBack={() => setSelectedEmail(null)}
           onOpenAi={() => setIsAiChatOpen(true)}
+          onAction={handleEmailAction}onAiReply={() => handleAiReply(selectedEmail)} 
+          isAiThinking={isAiThinking} 
         />
 
+        {/* The Settings Modal */}
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+        />
+
+        {isComposeOpen && (
+          <ComposeModal 
+          isOpen={isComposeOpen}
+        onClose={() => {
+          setIsComposeOpen(false);
+          setDraftData({ to: "", subject: "", body: "" })
+        }}
+          defaultTo={draftData.to}
+          defaultSubject={draftData.subject}
+          defaultBody={draftData.body}
+        />
+        )}
+
+        
+       {!isAiChatOpen && (
+          <button
+            onClick={() => setIsAiChatOpen(true)}
+            className="fixed bottom-6 right-6 z-50 p-4 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110 group border border-purple-400/30"
+            title="Ask AI"
+          >
+            <Sparkles size={24} className="group-hover:animate-pulse text-white" />
+          </button>
+        )}
+        
         <AiChat isOpen={isAiChatOpen} onClose={() => setIsAiChatOpen(false)}  emails={emails}/>
+
+
       </div>
     );
   }

@@ -11,14 +11,20 @@ interface ReadingPaneProps {
   selectedEmail: any | null;
   getBadgeStyle: (category: string) => string;
   onBack: () => void; 
-  onOpenAi?: () => void; // NEW: Prop to open the AI Chat from the top right!
+  onOpenAi?: () => void;
+  onAction?: (id: string, action: string) => void;
+  onAiReply?: () => void;
+  isAiThinking?: boolean;
 }
 
 export default function ReadingPane({
   selectedEmail,
   getBadgeStyle,
   onBack,
-  onOpenAi
+  onOpenAi,
+  onAction,
+  onAiReply,
+  isAiThinking
 }: ReadingPaneProps) {
   const { data: session } = useSession();
   const [isSending, setIsSending] = useState(false);
@@ -67,40 +73,59 @@ export default function ReadingPane({
   const senderName = selectedEmail?.from?.split("<")[0].replace(/"/g, '').trim() || "Unknown Sender";
 
   return (
-    <main className={`flex-1 flex-col bg-zinc-950 relative border-l border-zinc-800/50 ${!selectedEmail ? "hidden md:flex" : "flex"}`}>
-      {selectedEmail ? (
+    <main className={`flex-1 min-w-0 flex-col bg-zinc-950 relative border-l border-zinc-800/50 ${!selectedEmail ? "hidden" : "flex"}`}>
+      {selectedEmail && (
         <>
           {/* --- TOP TOOLBAR --- */}
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-md">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-md w-full gap-2">
             
-            {/* Left Actions */}
-            <div className="flex items-center gap-1">
-              <button onClick={onBack} title="Back to Inbox" className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition">
+            {/* Left Actions - Added overflow-x-auto so icons can scroll instead of bleeding! */}
+            <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide pr-2">
+              <button onClick={onBack} title="Back to Inbox" className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition shrink-0">
                 <ChevronsRight size={18} />
               </button>
               
-              <div className="w-px h-5 bg-zinc-800 mx-1" /> {/* Divider */}
+              <div className="w-px h-5 bg-zinc-800 mx-1 shrink-0" /> {/* Divider */}
               
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition hidden sm:block"><Reply size={16} /></button>
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition hidden sm:block"><Forward size={16} /></button>
+              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition hidden sm:block shrink-0"><Reply size={16} /></button>
+              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition hidden sm:block shrink-0"><Forward size={16} /></button>
               
-              <div className="w-px h-5 bg-zinc-800 mx-1 hidden sm:block" /> {/* Divider */}
+              <div className="w-px h-5 bg-zinc-800 mx-1 hidden sm:block shrink-0" /> {/* Divider */}
               
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition" title="Labels"><Tag size={16} /></button>
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition" title="Star"><Star size={16} /></button>
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition" title="Archive"><Archive size={16} /></button>
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition" title="Delete"><Trash2 size={16} /></button>
-              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition" title="More"><MoreHorizontal size={16} /></button>
+              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition shrink-0" title="Labels"><Tag size={16} /></button>
+              <button 
+                onClick={() => onAction && onAction(selectedEmail.id, selectedEmail.isStarred ? 'unstar' : 'star')}
+                className={`p-2 rounded-full transition shrink-0 ${selectedEmail.isStarred ? 'text-yellow-400 bg-yellow-400/10' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`} 
+                title={selectedEmail.isStarred ? "Unstar" : "Star"}
+              >
+                <Star size={16} className={selectedEmail.isStarred ? "fill-yellow-400" : ""} />
+              </button>
+              <button 
+                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition shrink-0" 
+                title="Archive"
+                onClick={() => onAction && onAction(selectedEmail.id, 'archive')}
+              >
+                <Archive size={16} />
+              </button>
+              <button 
+                className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition shrink-0" 
+                onClick={() => onAction && onAction(selectedEmail.id, 'trash')}
+                title="Delete"
+              >
+                <Trash2 size={16} />
+              </button>
+              <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition shrink-0" title="More"><MoreHorizontal size={16} /></button>
             </div>
 
-            {/* Right Action: AI Button */}
-            <div>
+            {/* Right Action: AI Button (Locked in place) */}
+            <div className="shrink-0">
               <button 
-                onClick={onOpenAi}
-                className="p-2 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 hover:scale-105 rounded-full transition-all shadow-[0_0_10px_rgba(59,130,246,0.2)]"
-                title="Ask AI about this email"
+                onClick={onAiReply}
+                disabled={isAiThinking}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-lg transition font-medium text-sm disabled:opacity-50 whitespace-nowrap"
               >
-                <Sparkles size={18} />
+                <Sparkles size={16} className={isAiThinking ? "animate-pulse shrink-0" : "shrink-0"} />
+                {isAiThinking ? "AI is typing..." : "AI Draft"}
               </button>
             </div>
           </div>
@@ -211,16 +236,6 @@ export default function ReadingPane({
             </div>
           </div>
         </>
-      ) : (
-        // Empty State
-        <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
-          <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4">
-            <span className="text-2xl opacity-50"><MoreHorizontal /></span>
-          </div>
-          <p className="font-medium text-lg text-zinc-400">
-            Select an item to read
-          </p>
-        </div>
       )}
     </main>
   );

@@ -3,22 +3,26 @@
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
 
-
 import { 
   Inbox, CheckSquare, Plus, Folder, Star, File, Send, 
   Archive, AlertOctagon, Trash2, MoreHorizontal, Minus,
-  PanelLeftClose, PanelLeft, Settings, PenSquare, Tag
+  PanelLeftClose, PanelLeft, Settings, PenSquare, Tag, LogOut
 } from "lucide-react";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onCompose?: () => void;
+  activeMailbox: string;
+  onSelectMailbox: (mailbox: string) => void;
+  onOpenSettings?: () => void;
+}
+
+export default function Sidebar({ onCompose, activeMailbox, onSelectMailbox, onOpenSettings }: SidebarProps) {
   const { data: session } = useSession();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMailboxesOpen, setIsMailboxesOpen] = useState(true);
   
-  // NEW: The state for the "More/Less" toggle!
   const [isMoreOpen, setIsMoreOpen] = useState(false); 
 
-  // Upgraded NavItem to accept our new SVG icons
   const NavItem = ({ icon, label, count, active = false, onClick }: any) => (
     <button 
       onClick={onClick}
@@ -28,7 +32,6 @@ export default function Sidebar() {
         : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100 border border-transparent"
     }`}>
       <div className="flex items-center gap-3">
-        {/* The icon now renders directly here */}
         <span className={`${active ? "text-purple-400" : "text-zinc-400"}`}>
           {icon}
         </span>
@@ -63,7 +66,9 @@ export default function Sidebar() {
 
       {/* 2. Primary Action: Compose Button */}
       <div className="px-4 mb-6 mt-2">
-        <button className="w-full bg-zinc-100 hover:bg-white text-black font-bold py-2.5 rounded-xl transition-all shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] flex items-center justify-center gap-2">
+        <button 
+        onClick={onCompose}
+        className="w-full bg-zinc-100 hover:bg-white text-black font-bold py-2.5 rounded-xl transition-all shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] flex items-center justify-center gap-2">
           <PenSquare size={18} />
           {!isCollapsed && "Compose"}
         </button>
@@ -74,8 +79,19 @@ export default function Sidebar() {
         
         {/* Smart Views */}
         <div className="space-y-1">
-          <NavItem icon={<Inbox size={18} />} label="Inbox" count="49" active={true} />
-          <NavItem icon={<CheckSquare size={18} />} label="To-do" count="7" />
+
+          {/*  INBOX */}
+          <NavItem 
+            icon={<Inbox size={18} />} 
+            label="Inbox" 
+            count="49" 
+            active={activeMailbox === "Inbox"} 
+            onClick={() => onSelectMailbox("Inbox")} 
+          />
+          <NavItem icon={<CheckSquare size={18} />} label="To-do" count="7" 
+          active={activeMailbox === "To-do"}
+          onClick={() => onSelectMailbox("To-do")}
+          />
           {!isCollapsed && (
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors mt-2 group">
               <Plus size={18} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" /> 
@@ -97,15 +113,16 @@ export default function Sidebar() {
           )}
           
           <div className={`space-y-1 mt-1 overflow-hidden transition-all duration-300 ${isMailboxesOpen || isCollapsed ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <NavItem icon={<Folder size={18} />} label="All Mail" />
-            <NavItem icon={<Star size={18} />} label="Starred" />
-            <NavItem icon={<File size={18} />} label="Draft" />
-            <NavItem icon={<Send size={18} />} label="Sent" />
-            <NavItem icon={<Archive size={18} />} label="Archive" />
-            <NavItem icon={<AlertOctagon size={18} />} label="Spam" />
-            <NavItem icon={<Trash2 size={18} />} label="Trash" />
             
-            {/* THE MORE / LESS TOGGLE */}
+            {/* Icons */}
+            <NavItem icon={<Folder size={18} />} label="All Mail" active={activeMailbox === "All Mail"} onClick={() => onSelectMailbox("All Mail")} />
+            <NavItem icon={<Star size={18} />} label="Starred" active={activeMailbox === "Starred"} onClick={() => onSelectMailbox("Starred")} />
+            <NavItem icon={<File size={18} />} label="Draft" active={activeMailbox === "Draft"} onClick={() => onSelectMailbox("Draft")} />
+            <NavItem icon={<Send size={18} />} label="Sent" active={activeMailbox === "Sent"} onClick={() => onSelectMailbox("Sent")} />
+            <NavItem icon={<Archive size={18} />} label="Archive" active={activeMailbox === "Archive"} onClick={() => onSelectMailbox("Archive")} />
+            <NavItem icon={<AlertOctagon size={18} />} label="Spam" active={activeMailbox === "Spam"} onClick={() => onSelectMailbox("Spam")} />
+            <NavItem icon={<Trash2 size={18} />} label="Trash" active={activeMailbox === "Trash"} onClick={() => onSelectMailbox("Trash")} />
+            
             {!isCollapsed && (
               <NavItem 
                 icon={isMoreOpen ? <Minus size={18} /> : <MoreHorizontal size={18} />} 
@@ -114,12 +131,13 @@ export default function Sidebar() {
               />
             )}
 
-            {/* THE EXTRA FOLDERS (Only shows when 'More' is clicked) */}
+            {/*Custom Gmail Labels*/}
             {!isCollapsed && isMoreOpen && (
               <div className="pl-4 space-y-1 border-l-2 border-zinc-800/50 ml-4 mt-2 animate-in slide-in-from-top-2 duration-200">
-                 <NavItem icon={<Tag size={16} />} label="Conversation History" />
-                 <NavItem icon={<Tag size={16} />} label="Scheduled Emails" />
-                 <NavItem icon={<Tag size={16} />} label="Important Receipts" />
+                 <NavItem icon={<Tag size={16} />} label="Conversation History" active={activeMailbox === "Conversation History"} onClick={() => onSelectMailbox("Conversation History")} />
+                 <NavItem icon={<Tag size={16} />} label="GMass Auto Followup" active={activeMailbox === "GMass Auto Followup"} onClick={() => onSelectMailbox("GMass Auto Followup")} />
+                 <NavItem icon={<Tag size={16} />} label="GMass Reports" active={activeMailbox === "GMass Reports"} onClick={() => onSelectMailbox("GMass Reports")} />
+                 <NavItem icon={<Tag size={16} />} label="GMass Scheduled" active={activeMailbox === "GMass Scheduled"} onClick={() => onSelectMailbox("GMass Scheduled")} />
               </div>
             )}
           </div>
@@ -149,13 +167,27 @@ export default function Sidebar() {
           </div>
           
           {!isCollapsed && (
-            <button 
-              onClick={() => signOut({ callbackUrl: '/' })} 
-              className="text-zinc-500 hover:text-zinc-300 transition p-1.5 hover:bg-zinc-800 rounded-lg" 
-              title="Settings & Sign Out"
-            >
-              <Settings size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              
+              {/* Button 1: AI Settings Vault */}
+              <button 
+                onClick={onOpenSettings} 
+                className="text-zinc-500 hover:text-white transition p-1.5 hover:bg-zinc-800 rounded-lg" 
+                title="AI Settings"
+              >
+                <Settings size={18} />
+              </button>
+
+              {/* Button 2: Sign Out */}
+              <button 
+                onClick={() => signOut({ callbackUrl: '/' })} 
+                className="text-zinc-500 hover:text-red-400 transition p-1.5 hover:bg-red-500/10 rounded-lg" 
+                title="Sign Out"
+              >
+                <LogOut size={18} />
+              </button>
+
+            </div>
           )}
         </div>
       </div>

@@ -3,43 +3,65 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: Request) {
   try {
-    const { prompt, emails } = await req.json();
+    
+    const { prompt, history, emails, apiKey } = await req.json();
 
-    // RAG database 
+    
     const emailData = emails.map((e: any) => 
       `From: ${e.from} | Subject: ${e.subject} | Snippet: ${e.snippet}`
     ).join("\n\n");
 
     const systemPrompt = `
-    You are EZee AI, an intelligent email assistant. 
-    The user is asking a question: "${prompt}"
+    You are EZee AI, an incredibly smart, friendly, and conversational AI email assistant. 
+    You have the personality of a helpful, highly intelligent human colleague. 
+
+    If the user just says "Hi", "Hello", or asks how you are, greet them warmly and chat like a normal person! 
     
-    Here are their recent emails to search through:
+    If the user asks about their emails, search through this recent inbox data to help them:
     ${emailData}
 
-    Answer the user's question directly and politely based ONLY on the emails provided above. 
-    If the answer is not in the emails, say "I couldn't find that in your recent emails."
+    Rules:
+    1. Be conversational, natural, and friendly.
+    2. If they ask you to find a specific email, summarize a thread, or extract info, use the provided email data.
+    3. If they ask for something you cannot see in the context, politely let them know you don't see it in their recent emails.
     `;
 
     try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-      const model = genAI.getGenerativeModel({model: "gemini-2.5-flash-lite"});
-      const result = await model.generateContent(systemPrompt);
+      if (!apiKey) throw new Error("No API Key provided");
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash-lite",
+        systemInstruction: systemPrompt 
+      });
+
+      const formattedHistory = history.map((msg: any) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }]
+      }));
+
+      const result = await model.generateContent({
+        contents: formattedHistory
+      });
+      
       const response = await result.response;
 
       return NextResponse.json({
         reply: response.text(),
-        tier: "Pro (Gemini)"
+        tier: "Pro (Gemini BYOK)"
       });
+
     } catch (geminiError) {
+      console.error("🚨 GEMINI API CRASHED:", geminiError); 
+
       console.log("Gemini Failed, switching to Free Tier fallback...");
 
+      
       const searchKeyWords = prompt.toLowerCase().split(" ").filter((word: string) => word.length > 3);
-
       let fallbackReply = "";
 
       if (searchKeyWords.length === 0) {
-        fallbackReply = `(Free Tier Mode) I did a quick scan but couldn't find anything matching that. Upgrade to Pro for deep AI search!`;
+        fallbackReply = `(Free Tier Mode) I did a quick scan but couldn't find anything matching that. Please ensure your Gemini API key in Settings is valid for deep AI search!`;
       } else {
         const foundEmails = emails.filter((e: any) => 
           searchKeyWords.some((word: string) => 
@@ -48,9 +70,9 @@ export async function POST(req: Request) {
         );
 
         if (foundEmails.length > 0) {
-          fallbackReply = `(Free Tier Mode) I found ${foundEmails.length} email(s) that might match your search. For example: "${foundEmails[0].subject}" from ${foundEmails[0].from}. Upgrade to Pro for deep AI analysis!`;
+          fallbackReply = `(Free Tier Mode) I found ${foundEmails.length} email(s) that might match your search. For example: "${foundEmails[0].subject}" from ${foundEmails[0].from}. Check your API Key settings for deep AI analysis!`;
         } else {
-          fallbackReply = `(Free Tier Mode) I did a quick scan but couldn't find anything matching that. Upgrade to Pro for deep AI search!`;
+          fallbackReply = `(Free Tier Mode) I did a quick scan but couldn't find anything matching that. Check your API Key settings for deep AI search!`;
         }
       }
 

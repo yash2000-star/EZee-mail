@@ -12,7 +12,7 @@ const handler = NextAuth({
                     access_type: "offline",
                     response_type: "code",
                     // Ask for Email Reading permissions
-                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+                    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.modify",
                 },
             },
         }),
