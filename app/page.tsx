@@ -6,10 +6,25 @@ import ReadingPane from "@/components/ReadingPane";
 import AiChat from "@/components/AiChat";
 import ComposeModal from "@/components/ComposeModal";
 import SettingsModal from "@/components/SettingsModal";
+import LandingPage from "@/components/LandingPage";
+import SmartLabelModal from "@/components/SmartLabelModal";
+import ToDoDashboard from "@/components/ToDoDashboard";
 
 import { signIn, useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
-import { Sparkles, X } from "lucide-react"; 
+import {
+  Sparkles,
+  Search,
+  Shield,
+  Bot,
+  Check,
+  Key,
+  Settings,
+  Mail,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+} from "lucide-react";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -22,9 +37,11 @@ export default function Home() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [activeMailbox, setActiveMailbox] = useState("Inbox");
   const [draftData, setDraftData] = useState({ to: "", subject: "", body: "" });
-  const [isAiThinking, setIsAiThinking] = useState(false); 
+  const [isAiThinking, setIsAiThinking] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
+  const [isSmartLabelModalOpen, setIsSmartLabelModalOpen] = useState(false);
+  const [globalTasks, setGlobalTasks] = useState<any[]>([]);
+  const [customLabels, setCustomLabels] = useState<any[]>([]);
 
   //Find a specific header from the list
   const getHeader = (headers: any[], name: string) => {
@@ -98,7 +115,10 @@ export default function Home() {
     return "No readable content found.";
   };
 
-  const fetchEmails = async (mailboxToFetch = activeMailbox, searchString = "") => {
+  const fetchEmails = async (
+    mailboxToFetch = activeMailbox,
+    searchString = "",
+  ) => {
     // Safety Check
     if (!(session as any)?.accessToken) return;
     setIsFetching(true);
@@ -109,25 +129,24 @@ export default function Home() {
     if (mailboxToFetch === "Draft") query = "is:draft";
     if (mailboxToFetch === "Spam") query = "in:spam";
     if (mailboxToFetch === "Trash") query = "in:trash";
-    if (mailboxToFetch === "Conversation History") query = 'label:"Conversation History"';
-    if (mailboxToFetch === "GMass Auto Followup") query = 'label:"GMass Auto Followup"';
+    if (mailboxToFetch === "Conversation History")
+      query = 'label:"Conversation History"';
+    if (mailboxToFetch === "GMass Auto Followup")
+      query = 'label:"GMass Auto Followup"';
     if (mailboxToFetch === "GMass Reports") query = 'label:"GMass Reports"';
     if (mailboxToFetch === "GMass Scheduled") query = 'label:"GMass Scheduled"';
 
     // GLOBAL SEARCH ENGINe
     if (searchString.trim() !== "") {
-       query += ` ${searchString}`; 
+      query += ` ${searchString}`;
     }
 
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=10&q=${encodeURIComponent(query)}`;
 
     // Knock on Google's door
-    const response = await fetch(
-      url,
-      {
-        headers: { Authorization: `Bearer ${(session as any).accessToken}` },
-      },
-    );
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${(session as any).accessToken}` },
+    });
 
     const data = await response.json();
 
@@ -157,7 +176,10 @@ export default function Home() {
         isStarred: msg.labelIds?.includes("STARRED") || false,
         to: getHeader(msg.payload.headers, "To"),
         cc: getHeader(msg.payload.headers, "Cc"),
-        hasAttachment: msg.payload.parts?.some((part: any) => part.filename && part.filename.length > 0) || false,
+        hasAttachment:
+          msg.payload.parts?.some(
+            (part: any) => part.filename && part.filename.length > 0,
+          ) || false,
       }));
 
       // 1. Show emails on screen immediately
@@ -166,7 +188,9 @@ export default function Home() {
 
       // 2. AUTO-PILOT ENGAGE
       for (const msg of cleanEmails) {
-        await classifyEmail(msg.id, msg.snippet);
+        await classifyEmail(msg.id, msg.snippet); 
+        await extractTasksAndLabels(msg); 
+        
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
     }
@@ -204,26 +228,92 @@ export default function Home() {
     }
   };
 
-  // Quick action 
+  const extractTasksAndLabels = async (email: any) => {
+    const apiKey = localStorage.getItem("gemini_api_key");
+    if (!apiKey) return;
+
+    try {
+      const senderName = email.from.split("<")[0].replace(/"/g, "").trim();
+      
+      const response = await fetch("/api/ai/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          emailBody: `Subject: ${email.subject}\n\n${email.body.substring(0, 1000)}`, // Send subject + up to 1000 chars of body
+          sender: senderName,
+          apiKey: apiKey,
+          customLabels: customLabels 
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Tasks API failed with status: ${response.status}`);
+        return; // Stop here before it tries to parse HTML!
+      }
+      
+      const result = await response.json();
+
+      // 1. Save Tasks to the Global Dashboard
+      if (result.tasks && result.tasks.length > 0) {
+        setGlobalTasks((prevTasks) => {
+          const newTasks = result.tasks.map((task: any) => ({
+            id: Math.random().toString(36).substr(2, 9),
+            emailId: email.id,
+            title: task.title,
+            date: task.date,
+            isUrgent: task.isUrgent,
+            isPastDue: task.isPastDue,
+            status: "active"
+          }));
+          return [...prevTasks, ...newTasks];
+        });
+      }
+
+      // 2. Add labels quietly to the email
+      if (result.appliedLabels && result.appliedLabels.length > 0) {
+        setEmails((prevEmails) => 
+          prevEmails.map((e) => e.id === email.id ? { ...e, appliedLabels: result.appliedLabels } : e)
+        );
+      }
+
+    } catch (error) {
+      console.error("Failed to extract tasks:", error);
+    }
+  };
+
+  // Quick action
   const handleEmailAction = async (id: string, action: string) => {
     if (action === "trash" || action === "archive" || action === "unarchive") {
       setEmails((prev) => prev.filter((email) => email.id !== id));
       if (selectedEmail?.id === id) setSelectedEmail(null);
-    } 
-    else if (action === "unread") {
-      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isUnread: true } : email));
-    } 
-    else if (action === "read") {
-      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isUnread: false } : email));
-
-    } 
-    else if (action === "star") {
-      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isStarred: true } : email));
-      if (selectedEmail?.id === id) setSelectedEmail({ ...selectedEmail, isStarred: true });
-    } 
-    else if (action === "unstar") {
-      setEmails((prev) => prev.map((email) => email.id === id ? { ...email, isStarred: false } : email));
-      if (selectedEmail?.id === id) setSelectedEmail({ ...selectedEmail, isStarred: false });
+    } else if (action === "unread") {
+      setEmails((prev) =>
+        prev.map((email) =>
+          email.id === id ? { ...email, isUnread: true } : email,
+        ),
+      );
+    } else if (action === "read") {
+      setEmails((prev) =>
+        prev.map((email) =>
+          email.id === id ? { ...email, isUnread: false } : email,
+        ),
+      );
+    } else if (action === "star") {
+      setEmails((prev) =>
+        prev.map((email) =>
+          email.id === id ? { ...email, isStarred: true } : email,
+        ),
+      );
+      if (selectedEmail?.id === id)
+        setSelectedEmail({ ...selectedEmail, isStarred: true });
+    } else if (action === "unstar") {
+      setEmails((prev) =>
+        prev.map((email) =>
+          email.id === id ? { ...email, isStarred: false } : email,
+        ),
+      );
+      if (selectedEmail?.id === id)
+        setSelectedEmail({ ...selectedEmail, isStarred: false });
     }
 
     try {
@@ -242,8 +332,15 @@ export default function Home() {
 
   // THE AI AUTO-REPLY ENGINE
   const handleAiReply = async (email: any) => {
-    setIsAiThinking(true); 
-    
+    const apiKey = localStorage.getItem("gemini_api_key");
+    if (!apiKey) {
+      alert(
+        "⚠️ Please click the Gear icon in the bottom left to add your Gemini API Key first!",
+      );
+      return;
+    }
+    setIsAiThinking(true);
+
     try {
       const senderName = email.from.split("<")[0].replace(/"/g, "").trim();
       const senderEmail = email.from.match(/<(.*)>/)?.[1] || email.from;
@@ -251,7 +348,11 @@ export default function Home() {
       const response = await fetch("/api/ai/reply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailBody: email.body, senderName }),
+        body: JSON.stringify({
+          emailBody: email.body,
+          senderName,
+          apiKey: apiKey,
+        }),
       });
 
       const data = await response.json();
@@ -259,203 +360,173 @@ export default function Home() {
       if (data.reply) {
         setDraftData({
           to: senderEmail,
-          subject: `Re: ${email.subject.replace(/^(Re:\s*)+/i, '')}`, // Adds Re: smartly
+          subject: `Re: ${email.subject.replace(/^(Re:\s*)+/i, "")}`,
           body: data.reply,
         });
-        
-        
+
         setIsComposeOpen(true);
       }
     } catch (error) {
       console.error("AI Reply failed:", error);
       alert("AI failed to generate a reply. Please try again.");
     } finally {
-      setIsAiThinking(false); 
+      setIsAiThinking(false);
     }
   };
 
+  // --- TO-DO DASHBOARD HANDLERS ---
+  const handleToggleTask = (taskId: string) => {
+    setGlobalTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? { ...task, status: task.status === "active" ? "done" : "active" }
+          : task
+      )
+    );
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setGlobalTasks((prev) => prev.filter((task) => task.id !== taskId));
+  };
+
+  const handleViewEmail = (emailId: string) => {
+    const emailToView = emails.find((e) => e.id === emailId);
+    if (emailToView) {
+      setSelectedEmail(emailToView);
+      setActiveMailbox("Inbox"); // Switch away from Dashboard to see the email!
+    }
+  };
+
+  // --- NEW: SMART LABEL HANDLERS ---
+  const handleDeleteCustomLabel = (labelName: string) => {
+    // 1. Remove the label from our array
+    setCustomLabels((prev) => prev.filter((label) => label.name !== labelName));
+    
+    // 2. If the user was currently looking at that label's folder, kick them back to Inbox
+    if (activeMailbox === labelName) {
+      setActiveMailbox("Inbox");
+      fetchEmails("Inbox");
+    }
+  };
+  // -------------------------------------
+
   useEffect(() => {
-    if((session as any)?.accessToken && emails.length === 0 && !isFetching){
+    if ((session as any)?.accessToken && emails.length === 0 && !isFetching) {
       fetchEmails();
     }
-  }, [session, emails.length])
+  }, [session, emails.length]);
 
   if (session) {
     return (
       //  Locks the screen height
       <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden selection:bg-purple-500/30 relative">
+        
         {/* Sidebar (Left) */}
-        <Sidebar 
-        onCompose={() => setIsComposeOpen(true)} 
-        activeMailbox={activeMailbox}
-        onSelectMailbox={(folderName) => {
-          setActiveMailbox(folderName);
-          setSelectedEmail(null);
-          setEmails([]);
-          fetchEmails(folderName);
-        }}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        <Sidebar
+          onCompose={() => setIsComposeOpen(true)}
+          activeMailbox={activeMailbox}
+          onSelectMailbox={(folderName) => {
+            setActiveMailbox(folderName);
+            setSelectedEmail(null);
+            setEmails([]);
+            fetchEmails(folderName);
+          }}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSmartLabelModal={() => setIsSmartLabelModalOpen(true)}
+          customLabels={customLabels}
+          onDeleteCustomLabel={handleDeleteCustomLabel} // <-- THIS WIRE MAKES IT WORK!
         />
 
-        {/* The Email Feed */}
-        <EmailFeed
-          emails={emails}
-          selectedEmail={selectedEmail}
-          onSelect={setSelectedEmail}
-          onRefresh={fetchEmails} 
-          isSyncing={isFetching}
-          onOpenAi={() => setIsAiChatOpen(true)}
-          onAction={handleEmailAction}
-          onSearch={(searchWord) => fetchEmails(activeMailbox, searchWord)}
-        />
+        <div className="flex-1 flex overflow-hidden">
+          {activeMailbox === "To-do" ? (
+            <ToDoDashboard 
+              tasks={globalTasks} 
+              onToggleTask={handleToggleTask}
+              onDeleteTask={handleDeleteTask}
+              onViewEmail={handleViewEmail}
+            />
+          ) : (
+            <>
+              {/* The Email Feed */}
+              <EmailFeed
+                emails={emails}
+                selectedEmail={selectedEmail}
+                onSelect={setSelectedEmail}
+                onRefresh={fetchEmails}
+                isSyncing={isFetching}
+                onOpenAi={() => setIsAiChatOpen(true)}
+                onAction={handleEmailAction}
+                onSearch={(searchWord) => fetchEmails(activeMailbox, searchWord)}
+                customLabels={customLabels}
+              />
 
-        {/* The Reading Pane */}
-        <ReadingPane
-          selectedEmail={selectedEmail}
-          getBadgeStyle={getBadgeStyle}
-          onBack={() => setSelectedEmail(null)}
-          onOpenAi={() => setIsAiChatOpen(true)}
-          onAction={handleEmailAction}onAiReply={() => handleAiReply(selectedEmail)} 
-          isAiThinking={isAiThinking} 
-        />
+              {/* The Reading Pane */}
+              <ReadingPane
+                selectedEmail={selectedEmail}
+                getBadgeStyle={getBadgeStyle}
+                onBack={() => setSelectedEmail(null)}
+                onOpenAi={() => setIsAiChatOpen(true)}
+                onAction={handleEmailAction}
+                onAiReply={() => handleAiReply(selectedEmail)}
+                isAiThinking={isAiThinking}
+              />
+            </>
+          )}
+        </div>
 
         {/* The Settings Modal */}
-        <SettingsModal 
-          isOpen={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)} 
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
         />
 
         {isComposeOpen && (
-          <ComposeModal 
-          isOpen={isComposeOpen}
-        onClose={() => {
-          setIsComposeOpen(false);
-          setDraftData({ to: "", subject: "", body: "" })
-        }}
-          defaultTo={draftData.to}
-          defaultSubject={draftData.subject}
-          defaultBody={draftData.body}
-        />
+          <ComposeModal
+            isOpen={isComposeOpen}
+            onClose={() => {
+              setIsComposeOpen(false);
+              setDraftData({ to: "", subject: "", body: "" });
+            }}
+            defaultTo={draftData.to}
+            defaultSubject={draftData.subject}
+            defaultBody={draftData.body}
+          />
         )}
 
-        
-       {!isAiChatOpen && (
+        {!isAiChatOpen && (
           <button
             onClick={() => setIsAiChatOpen(true)}
             className="fixed bottom-6 right-6 z-50 p-4 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-2xl transition-all duration-300 hover:scale-110 group border border-purple-400/30"
             title="Ask AI"
           >
-            <Sparkles size={24} className="group-hover:animate-pulse text-white" />
+            <Sparkles
+              size={24}
+              className="group-hover:animate-pulse text-white"
+            />
           </button>
         )}
-        
-        <AiChat isOpen={isAiChatOpen} onClose={() => setIsAiChatOpen(false)}  emails={emails}/>
 
+        <AiChat
+          isOpen={isAiChatOpen}
+          onClose={() => setIsAiChatOpen(false)}
+          emails={emails}
+        />
 
+        {/* Smart Label Modal */}
+        <SmartLabelModal
+          isOpen={isSmartLabelModalOpen}
+          onClose={() => setIsSmartLabelModalOpen(false)}
+          onAddLabel={(newLabel) => {
+            // Save the custom label to our state! The background AI will now use this rule.
+            setCustomLabels((prev) => [...prev, newLabel]);
+            alert(`Success! "${newLabel.name}" saved. Mail-Man will now scan incoming emails against this rule.`);
+          }}
+        />
       </div>
     );
   }
-  // --- UI: LOGGED OUT ---
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-purple-500/30 overflow-y-auto">
-      {/* Navbar */}
-      <nav className="border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span className="text-purple-500">⚡</span> EZee Mail
-          </h1>
-          <button
-            onClick={() => signIn("google")}
-            className="text-sm font-medium bg-white text-black px-4 py-2 rounded-lg hover:bg-zinc-200 transition shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-          >
-            Sign In
-          </button>
-        </div>
-      </nav>
 
-      {/* Hero Section */}
-      <div className="relative max-w-5xl mx-auto px-6 pt-32 pb-20 text-center">
-        {/* Glowing background effect */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(168,85,247,0.15),transparent_50%)]"></div>
-
-        <h1 className="relative text-5xl md:text-7xl font-extrabold tracking-tighter mb-6 bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
-          Your Inbox, <br className="hidden md:block" /> On Autopilot.
-        </h1>
-        <p className="relative text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
-          Stop drowning in emails. EZee Mail uses advanced AI to summarize
-          threads, categorize junk, and draft perfect replies in seconds.
-        </p>
-        <button
-          onClick={() => signIn("google")}
-          className="relative bg-white text-black font-semibold py-4 px-8 rounded-full text-lg hover:scale-105 hover:bg-zinc-100 transition-all shadow-[0_0_40px_rgba(168,85,247,0.4)]"
-        >
-          Get Started for Free
-        </button>
-      </div>
-
-      {/* dashboard looks like!) */}
-      <div className="max-w-5xl mx-auto px-6 pb-32">
-        <div className="rounded-2xl border border-zinc-800/50 bg-zinc-900/50 p-2 md:p-4 shadow-2xl overflow-hidden backdrop-blur-sm relative">
-          <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent opacity-50"></div>
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950 h-[400px] flex overflow-hidden">
-            {/* Fake Sidebar */}
-            <div className="w-1/4 border-r border-zinc-800/50 hidden md:block bg-zinc-900/20 p-4">
-              <div className="h-8 w-24 bg-zinc-800 rounded-lg mb-8"></div>
-              <div className="space-y-3">
-                <div className="h-6 w-full bg-zinc-800/50 rounded"></div>
-                <div className="h-6 w-3/4 bg-zinc-800/30 rounded"></div>
-                <div className="h-6 w-5/6 bg-zinc-800/30 rounded"></div>
-              </div>
-            </div>
-            {/* Fake Email List */}
-            <div className="w-full md:w-1/3 border-r border-zinc-800/50 bg-zinc-900/10 p-4 space-y-3">
-              <div className="h-16 w-full rounded-lg bg-zinc-800/50"></div>
-              <div className="h-16 w-full rounded-lg bg-purple-900/20 border-l-2 border-purple-500"></div>
-              <div className="h-16 w-full rounded-lg bg-zinc-800/50"></div>
-              <div className="h-16 w-full rounded-lg bg-zinc-800/50"></div>
-            </div>
-            {/* Fake Reading Pane */}
-            <div className="flex-1 hidden md:block p-8 space-y-6">
-              <div className="h-10 w-3/4 rounded-lg bg-zinc-800/80"></div>
-              <div className="h-24 w-full rounded-xl bg-purple-500/5 border border-purple-500/20"></div>
-              <div className="h-32 w-full rounded-xl bg-blue-500/5 border border-blue-500/20"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div className="max-w-5xl mx-auto px-6 pb-32 grid md:grid-cols-3 gap-6">
-        <div className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900/80 transition cursor-default">
-          <div className="text-3xl mb-4">✨</div>
-          <h3 className="text-lg font-bold text-white mb-2">AI Summaries</h3>
-          <p className="text-zinc-400 text-sm leading-relaxed">
-            Instantly grasp the core message of long threads without reading
-            paragraphs of text.
-          </p>
-        </div>
-        <div className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900/80 transition cursor-default">
-          <div className="text-3xl mb-4">✍️</div>
-          <h3 className="text-lg font-bold text-white mb-2">Smart Drafts</h3>
-          <p className="text-zinc-400 text-sm leading-relaxed">
-            Our AI predicts when an email needs a reply and writes a highly
-            professional draft for you.
-          </p>
-        </div>
-        <div className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900/80 transition cursor-default">
-          <div className="text-3xl mb-4">🔒</div>
-          <h3 className="text-lg font-bold text-white mb-2">Privacy First</h3>
-          <p className="text-zinc-400 text-sm leading-relaxed">
-            Your emails stay secure. We use official Google APIs and never store
-            your private data on our servers.
-          </p>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/50 py-8 text-center text-zinc-500 text-sm">
-        <p>© 2024 EZee Mail. Built with Next.js & Gemini AI.</p>
-      </footer>
-    </div>
-  );
+  if (!session) {
+    return <LandingPage />;
+  }
 }

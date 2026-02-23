@@ -23,6 +23,7 @@ interface EmailFeedProps {
   isSyncing: boolean;
   onAction: (id: string, action: string) => void;
   onSearch: (query: string) => void;
+  customLabels?: any[]; // <-- ADDED THIS
 }
 
 export default function EmailFeed({
@@ -33,6 +34,7 @@ export default function EmailFeed({
   isSyncing,
   onAction,
   onSearch,
+  customLabels = [], // <-- ADDED THIS
 }: EmailFeedProps) {
   // The memory for what the user is searching and what tab is active!
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,14 +93,18 @@ export default function EmailFeed({
       email.from?.toLowerCase().includes(searchQuery.toLocaleLowerCase());
 
     let matchesTab = true;
-    if (activeTab === "Important")
+    if (activeTab === "Important") {
       matchesTab = email.category?.toLowerCase() === "important";
-    if (activeTab === "Updates")
+    } else if (activeTab === "Updates") {
       matchesTab =
         email.category?.toLowerCase() === "updates" ||
         email.category?.toLowerCase() === "social";
-    if (activeTab === "Promotions")
+    } else if (activeTab === "Promotions") {
       matchesTab = email.category?.toLowerCase() === "promotions";
+    } else if (activeTab !== "All") {
+      // NEW: IT MUST BE A CUSTOM SMART LABEL!
+      matchesTab = email.appliedLabels && email.appliedLabels.includes(activeTab);
+    }
 
     let matchesAdvanced = true;
 
@@ -301,6 +307,22 @@ export default function EmailFeed({
         {/* TABS & CUSTOMIZE */}
         <div className="flex items-center justify-between text-sm font-medium">
           <div className="flex gap-5 overflow-x-auto scrollbar-hide">
+            
+            {/* --- NEW: RENDER CUSTOM LABELS AS TABS! --- */}
+            {customLabels.map((label, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveTab(label.name)}
+                className={`pb-2 px-1 flex items-center gap-1.5 whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === label.name ? "text-white border-blue-500" : "text-zinc-500 hover:text-zinc-300 border-transparent"
+                }`}
+              >
+                <Sparkles size={14} className={activeTab === label.name ? "text-blue-500" : "text-zinc-500"} />
+                {label.name}
+              </button>
+            ))}
+            {/* ---------------------------------------- */}
+
             {visibleTabs.Important && (
               <button
                 onClick={() => setActiveTab("Important")}
@@ -442,9 +464,27 @@ export default function EmailFeed({
                       {formatTime(email.date)}
                     </span>
                   </div>
+                  
                   <div className={`text-sm truncate flex items-center gap-2 ${email.isUnread ? "text-zinc-300 font-semibold" : "text-zinc-400"}`}>
                     <span className="truncate">{email.subject}</span>
                   </div>
+
+                  {/* --- NEW: INLINE SMART LABELS BADGES --- */}
+                  {email.appliedLabels && email.appliedLabels.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {email.appliedLabels.map((label: string, idx: number) => (
+                        <span 
+                          key={idx} 
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        >
+                          <Sparkles size={10} className="text-blue-500" />
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* ---------------------------------------- */}
+
                 </div>
 
                 {/* Hover Actions */}

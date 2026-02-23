@@ -1,16 +1,40 @@
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: Request) {
   try {
-    const { emailBody, senderName } = await req.json();
+    const { emailBody, senderName, apiKey } = await req.json();
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (!apiKey) {
+      return NextResponse.json({ error: "No API key provided." }, { status: 401 });
+    }
 
-    const aiGeneratedReply = `Hi ${senderName || 'there'},\n\nThank you for reaching out! I have received your email and am currently reviewing the details. I will get back to you with a comprehensive update very soon.\n\nBest regards,\nYash Nirwan`;
 
-    return NextResponse.json({ reply: aiGeneratedReply });
-  } catch (error) {
-    console.error("AI Generation Error:", error);
-    return NextResponse.json({ error: "Failed to generate AI reply" }, { status: 500 });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+    const prompt = `
+      You are an elite executive assistant drafting an email reply.
+      The user just received this email from ${senderName}:
+      
+      --- EMAIL START ---
+      ${emailBody}
+      --- EMAIL END ---
+      
+      Draft a professional, polite, and concise reply. 
+      Do NOT include subject lines, placeholders like [Your Name], or any introductory conversation. 
+      Just output the exact body of the email reply so it can be directly pasted into a text box.
+    `;
+
+    // 3. Generate the response
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const draftedReply = response.text();
+
+    return NextResponse.json({ reply: draftedReply });
+
+  } catch (error: any) {
+    console.error("AI Reply Server Error:", error);
+    return NextResponse.json({ error: "Failed to generate reply" }, { status: 500 });
   }
 }
