@@ -153,13 +153,6 @@ export default function EmailFeed({
         <div className="flex items-center justify-between gap-1">
           <div className="flex items-center gap-0.5 shrink-0">
             <button
-              onClick={onToggleSidebar}
-              className="p-2.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-full transition"
-              title="Expand Sidebar"
-            >
-              <PanelLeft size={20} strokeWidth={1.5} />
-            </button>
-            <button
               onClick={onRefresh}
               disabled={isSyncing}
               className="p-2.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition disabled:opacity-50"
