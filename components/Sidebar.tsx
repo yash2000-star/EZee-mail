@@ -9,7 +9,7 @@ import {
   Archive, AlertCircle, Trash2, MoreHorizontal, Minus,
   PanelRightClose, Settings, Pencil, Tag, Edit2, Check,
   Mail, ChevronRight, ChevronDown, ChevronUp, Sparkles, CheckSquare, LogOut, Menu, PanelLeftClose, PanelLeftOpen,
-  Moon, Sun
+  Moon, Sun, X
 } from "lucide-react";
 
 interface SidebarProps {
@@ -23,6 +23,7 @@ interface SidebarProps {
   customLabels?: any[];
   onDeleteCustomLabel?: (name: string) => void;
   unreadCount?: number;
+  onClose?: () => void;
 }
 
 // Color mapper for the dots
@@ -45,7 +46,8 @@ export default function Sidebar({
   customLabels = [],
   onDeleteCustomLabel,
   isCollapsed = false,
-  unreadCount = 0
+  unreadCount = 0,
+  onClose,
 }: SidebarProps) {
   const { data: session } = useSession();
   const { isDark, toggleTheme } = useTheme();
@@ -100,10 +102,10 @@ export default function Sidebar({
   };
 
   return (
-    <aside className={`${isCollapsed ? 'w-20' : 'w-[250px]'} hidden md:flex flex-col bg-white dark:bg-slate-900 h-screen transition-all duration-300 shrink-0 z-10 font-sans`}>
+    <aside className={`${isCollapsed ? 'w-20' : 'w-[250px]'} flex flex-col bg-white dark:bg-slate-900 h-screen transition-all duration-300 shrink-0 z-10 font-sans`}>
 
       {/* 1. Header */}
-      <div className={`p-4 flex items-center h-16 shrink-0 mt-1 ${isCollapsed ? "justify-center px-0 mt-2" : "justify-start pl-[22px] gap-2"}`}>
+      <div className={`p-4 flex items-center h-16 shrink-0 mt-1 ${isCollapsed ? "justify-center px-0 mt-2" : "justify-between pl-[22px] pr-3"}`}>
         {isCollapsed ? (
           <div className="bg-[#1a73e8] p-[5px] rounded-[6px] shadow-sm flex items-center justify-center">
             <Check className="text-white w-[16px] h-[16px]" strokeWidth={3} />
@@ -115,6 +117,15 @@ export default function Sidebar({
             </div>
             Mail-man
           </h1>
+        )}
+        {/* Close button — only visible on mobile */}
+        {onClose && !isCollapsed && (
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
+          >
+            <X size={20} strokeWidth={2} />
+          </button>
         )}
       </div>
 

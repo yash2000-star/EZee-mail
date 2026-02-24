@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, Check, Bot, Shield, Sparkles,
   Mail, Plus, Search, Tag, BarChart3, Clock,
-  ChevronRight, Star
+  ChevronRight, Star, Menu, X
 } from "lucide-react";
 
 // ===== ANIMATION HELPERS =====
@@ -63,6 +63,7 @@ export default function LandingPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [useCaseIdx, setUseCaseIdx] = useState(0);
   const [inputVal, setInputVal] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Cycle through use cases
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function LandingPage() {
             <span className="font-extrabold text-xl text-slate-900 tracking-tight">Mail-man</span>
           </div>
 
-          {/* Links */}
+          {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-8">
             {["Features", "Pricing", "About"].map(link => (
               <a key={link} href={`#${link.toLowerCase()}`} className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition">
@@ -101,18 +102,43 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* CTA */}
-          <button
-            onClick={() => signIn("google")}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
-          >
-            Sign Up Free <ArrowRight size={14} strokeWidth={3} />
-          </button>
+          {/* CTA + Hamburger */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => signIn("google")}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
+            >
+              Sign Up <span className="hidden sm:inline">Free</span> <ArrowRight size={14} strokeWidth={3} />
+            </button>
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-slate-600 hover:text-slate-900 transition"
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-2 mx-auto max-w-6xl bg-white/95 backdrop-blur-md border border-gray-100 rounded-2xl shadow-lg px-6 py-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            {["Features", "Pricing", "About"].map(link => (
+              <a
+                key={link}
+                href={`#${link.toLowerCase()}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition py-1"
+              >
+                {link}
+              </a>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* ─── 2. HERO SECTION ─── */}
-      <section className="relative z-10 pt-48 pb-32 px-6 max-w-6xl mx-auto text-center">
+      <section className="relative z-10 pt-32 md:pt-48 pb-24 md:pb-32 px-6 max-w-6xl mx-auto text-center">
 
         {/* Badge */}
         <motion.div {...fadeUp} className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-bold mb-8">

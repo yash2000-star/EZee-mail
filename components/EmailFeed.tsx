@@ -431,7 +431,7 @@ export default function EmailFeed({
       </div>
 
       {/* THE EMAIL LIST */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-0 pb-20 bg-white dark:bg-slate-900">
+      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-0 pb-20 md:pb-4 bg-white dark:bg-slate-900">
         {filteredEmails.length === 0 ? (
 
           /* --- THE EMPTY STATE UI --- */

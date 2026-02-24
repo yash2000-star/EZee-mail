@@ -24,6 +24,10 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
+  Menu,
+  X,
+  ListTodo,
+  Pencil,
 } from "lucide-react";
 
 export default function Home() {
@@ -43,6 +47,7 @@ export default function Home() {
   const [globalTasks, setGlobalTasks] = useState<any[]>([]);
   const [customLabels, setCustomLabels] = useState<any[]>([]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [openAiApiKey, setOpenAiApiKey] = useState("");
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
@@ -665,23 +670,37 @@ export default function Home() {
       //  Locks the screen height
       <div className="flex h-screen bg-[#f8f9fa] dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans overflow-hidden selection:bg-blue-500/20 relative">
 
-        <Sidebar
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          onCompose={() => setIsComposeOpen(true)}
-          activeMailbox={activeMailbox}
-          onSelectMailbox={(folderName) => {
-            setActiveMailbox(folderName);
-            setSelectedEmail(null);
-            setEmails([]);
-            fetchEmails(folderName);
-          }}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenSmartLabelModal={() => setIsSmartLabelModalOpen(true)}
-          customLabels={customLabels}
-          onDeleteCustomLabel={handleDeleteCustomLabel} // <-- THIS WIRE MAKES IT WORK!
-          unreadCount={activeMailbox === "Inbox" ? emails.filter((e) => e.isUnread).length : 0}
-        />
+        {/* ─── MOBILE SIDEBAR DRAWER ─── */}
+        {/* Backdrop overlay */}
+        {isMobileSidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )}
+        {/* Drawer wrapper — slides in from the left on mobile */}
+        <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:relative md:transform-none md:transition-none ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}>
+
+          <Sidebar
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onCompose={() => setIsComposeOpen(true)}
+            activeMailbox={activeMailbox}
+            onSelectMailbox={(folderName) => {
+              setActiveMailbox(folderName);
+              setSelectedEmail(null);
+              setEmails([]);
+              fetchEmails(folderName);
+            }}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenSmartLabelModal={() => setIsSmartLabelModalOpen(true)}
+            customLabels={customLabels}
+            onDeleteCustomLabel={handleDeleteCustomLabel}
+            unreadCount={activeMailbox === "Inbox" ? emails.filter((e) => e.isUnread).length : 0}
+            onClose={() => setIsMobileSidebarOpen(false)}
+          />
+        </div>
 
         <div className="flex-1 flex overflow-hidden">
           {activeMailbox === "To-do" ? (
@@ -810,6 +829,48 @@ export default function Home() {
             }
           }}
         />
+        {/* ─── MOBILE BOTTOM NAVIGATION BAR ─── */}
+        <div className="fixed bottom-0 inset-x-0 z-30 md:hidden bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex items-center justify-around px-2 h-16 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="flex flex-col items-center gap-1 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition px-3 py-2"
+          >
+            <Menu size={22} strokeWidth={1.8} />
+            <span className="text-[10px] font-bold">Menu</span>
+          </button>
+          <button
+            onClick={() => { setActiveMailbox("Inbox"); setSelectedEmail(null); }}
+            className={`flex flex-col items-center gap-1 transition px-3 py-2 ${activeMailbox === "Inbox" ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-slate-400"
+              }`}
+          >
+            <Mail size={22} strokeWidth={1.8} />
+            <span className="text-[10px] font-bold">Inbox</span>
+          </button>
+          <button
+            onClick={() => setIsComposeOpen(true)}
+            className="flex flex-col items-center gap-1 text-gray-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition px-3 py-2"
+          >
+            <Pencil size={22} strokeWidth={1.8} />
+            <span className="text-[10px] font-bold">Compose</span>
+          </button>
+          <button
+            onClick={() => { setActiveMailbox("To-do"); setSelectedEmail(null); }}
+            className={`flex flex-col items-center gap-1 transition px-3 py-2 ${activeMailbox === "To-do" ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-slate-400"
+              }`}
+          >
+            <ListTodo size={22} strokeWidth={1.8} />
+            <span className="text-[10px] font-bold">To-do</span>
+          </button>
+          <button
+            onClick={() => setIsAiChatOpen(!isAiChatOpen)}
+            className={`flex flex-col items-center gap-1 transition px-3 py-2 ${isAiChatOpen ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-slate-400"
+              }`}
+          >
+            <Bot size={22} strokeWidth={1.8} />
+            <span className="text-[10px] font-bold">AI</span>
+          </button>
+        </div>
+
       </div>
     );
   }
