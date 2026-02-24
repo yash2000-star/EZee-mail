@@ -79,68 +79,74 @@ export default function ReadingPane({
           {/* --- TOP TOOLBAR --- */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white/95 backdrop-blur-md w-full gap-2 transition-shadow shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
 
-            {/* Left Actions */}
-            <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide pr-2">
-              <button onClick={onBack} title="Back to Inbox" className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition shrink-0 md:hidden">
-                <ChevronsRight size={20} className="rotate-180" strokeWidth={1.5} />
-              </button>
 
-              <button className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition hidden xl:block shrink-0">
-                <ChevronsRight size={20} className="rotate-180" strokeWidth={1.5} />
-              </button>
+            {/* Left Actions - Styled as specific flat icons based on screenshot */}
+            <div className="flex items-center gap-3 flex-1 min-w-0 overflow-x-auto scrollbar-hide pr-2 py-1 pl-2">
 
+              {/* Group 1: Collapse/Back (Circle) */}
               <button
-                onClick={() => onAction && onAction(selectedEmail.id, "reply")}
-                className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition shrink-0"
-              ><Reply size={18} strokeWidth={1.5} /></button>
-              <button
-                onClick={() => onAction && onAction(selectedEmail.id, "forward")}
-                className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition shrink-0"
-              ><Forward size={18} strokeWidth={1.5} /></button>
-
-              <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" /> {/* Divider */}
-
-              <button
-                onClick={() => onAction && onAction(selectedEmail.id, 'archive')}
-                className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition shrink-0"
-                title="Archive"
+                onClick={onBack}
+                title="Close"
+                className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shrink-0"
               >
-                <div className="relative flex items-center justify-center">
-                  {/* Visual Archive Box match */}
-                  <Archive size={18} strokeWidth={1.5} />
-                </div>
-              </button>
-              <button
-                onClick={() => onAction && onAction(selectedEmail.id, selectedEmail.isStarred ? 'unstar' : 'star')}
-                className={`p-2 rounded-full transition shrink-0 ${selectedEmail.isStarred ? 'text-[#f4b400] bg-yellow-50 hover:bg-yellow-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'}`}
-                title={selectedEmail.isStarred ? "Unstar" : "Star"}
-              >
-                <Star size={18} strokeWidth={1.5} className={selectedEmail.isStarred ? "fill-[#f4b400]" : ""} />
+                <ChevronsRight size={18} strokeWidth={2} />
               </button>
 
-              <button
-                onClick={() => onAction && onAction(selectedEmail.id, 'trash')}
-                className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition shrink-0"
-                title="Delete"
-              >
-                <Trash2 size={18} strokeWidth={1.5} />
-              </button>
+              {/* Group 2: Reply / Forward */}
+              <div className="flex items-center gap-1 shrink-0 ml-1">
+                <button
+                  onClick={() => onAction && onAction(selectedEmail.id, "reply")}
+                  className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition"
+                  title="Reply"
+                ><Reply size={18} strokeWidth={2} /></button>
+                <button
+                  onClick={() => onAction && onAction(selectedEmail.id, "forward")}
+                  className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition"
+                  title="Forward"
+                ><Forward size={18} strokeWidth={2} /></button>
+              </div>
 
-              <div className="w-px h-5 bg-gray-200 mx-1 shrink-0" /> {/* Divider */}
-              <button className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition shrink-0" title="More">
-                <MoreHorizontal size={18} strokeWidth={1.5} />
-              </button>
+              {/* Group 3: Tag / Star / Trash / More */}
+              <div className="flex items-center gap-1 shrink-0 ml-4">
+                <button
+                  onClick={() => onAction && onAction(selectedEmail.id, "tag")}
+                  className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition"
+                  title="Label"
+                >
+                  <Tag size={18} strokeWidth={2} />
+                </button>
+                <button
+                  onClick={() => onAction && onAction(selectedEmail.id, selectedEmail.isStarred ? 'unstar' : 'star')}
+                  className={`w-[36px] h-[36px] flex items-center justify-center rounded-full transition ${selectedEmail.isStarred ? 'text-[#f4b400] hover:bg-yellow-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+                  title={selectedEmail.isStarred ? "Unstar" : "Star"}
+                >
+                  <Star size={18} strokeWidth={2} className={selectedEmail.isStarred ? "fill-[#f4b400]" : ""} />
+                </button>
+                <button
+                  onClick={() => onAction && onAction(selectedEmail.id, 'trash')}
+                  className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition"
+                  title="Delete"
+                >
+                  <Trash2 size={18} strokeWidth={2} />
+                </button>
+                <button
+                  title="More"
+                  className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition shrink-0 ml-1"
+                >
+                  <MoreHorizontal size={18} strokeWidth={2} />
+                </button>
+              </div>
             </div>
 
-            {/* Right Action: AI Button */}
-            <div className="shrink-0 flex items-center gap-2 pl-2">
+            {/* Right Action: AI Button Custom Match */}
+            <div className="shrink-0 flex items-center gap-2 pr-2">
               <button
                 onClick={onAiReply}
                 disabled={isAiThinking}
-                className="flex items-center justify-center p-2.5 rounded-full border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.08)] bg-white hover:bg-blue-50 transition disabled:opacity-50"
+                className="w-[36px] h-[36px] flex items-center justify-center rounded-full text-blue-500 hover:bg-blue-50 transition disabled:opacity-50"
                 title="AI Actions"
               >
-                <Sparkles size={18} strokeWidth={1.5} className={`text-[#1a73e8] ${isAiThinking ? "animate-pulse" : ""}`} />
+                <Sparkles size={18} strokeWidth={2} className={`text-blue-500 ${isAiThinking ? "animate-pulse" : ""}`} />
               </button>
             </div>
           </div>

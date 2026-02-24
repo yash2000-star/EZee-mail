@@ -581,6 +581,7 @@ export default function Home() {
 
         <Sidebar
           isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           onCompose={() => setIsComposeOpen(true)}
           activeMailbox={activeMailbox}
           onSelectMailbox={(folderName) => {

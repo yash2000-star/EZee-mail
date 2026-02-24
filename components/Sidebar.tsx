@@ -7,11 +7,12 @@ import {
   Inbox, ListTodo, Plus, Folder, Star, FileText, Send,
   Archive, AlertCircle, Trash2, MoreHorizontal, Minus,
   PanelRightClose, Settings, Pencil, Tag, Edit2, Check,
-  Mail, ChevronRight, Sparkles, CheckSquare, LogOut
+  Mail, ChevronRight, ChevronDown, ChevronUp, Sparkles, CheckSquare, LogOut, Menu
 } from "lucide-react";
 
 interface SidebarProps {
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
   onCompose?: () => void;
   activeMailbox: string;
   onSelectMailbox: (mailbox: string) => void;
@@ -49,69 +50,108 @@ export default function Sidebar({
   // State to track which label's 3-dot menu is currently open
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const NavItem = ({ icon, label, count, active = false, onClick, hasChevron = false }: any) => (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center justify-between px-4 py-2 text-[14px] transition-all duration-200 ${active
-        ? "bg-[#f1f3f4] text-blue-500 rounded-lg"
-        : "text-[#3c4043] rounded-lg hover:bg-[#f1f3f4]"
-        }`}>
-      <div className="flex items-center gap-3">
-        {hasChevron && !isCollapsed ? (
-          <ChevronRight size={14} className="text-gray-400 -ml-1" />
-        ) : (
-          <div className="w-[14px] -ml-1"></div>
+  const NavItem = ({ icon, label, count, active = false, onClick, hasChevron = false }: any) => {
+    if (isCollapsed) {
+      return (
+        <div className="flex justify-center mb-1">
+          <button
+            onClick={onClick}
+            title={label}
+            className={`flex items-center justify-center w-[48px] h-[48px] rounded-full transition-colors duration-200 ${active ? "bg-[#d3e3fd] text-[#0b57d0]" : "text-[#444746] hover:bg-[#e1e5ea]"
+              }`}
+          >
+            {icon}
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={onClick}
+        className={`w-full flex items-center justify-between px-3 py-1.5 text-[14px] font-medium transition-colors duration-200 ${active
+          ? "bg-[#d3e3fd] text-[#0b57d0] rounded-r-full -ml-3 pl-6 font-bold"
+          : "text-[#444746] hover:bg-[#e1e5ea] rounded-r-full -ml-3 pl-6"
+          }`}>
+        <div className="flex items-center gap-4">
+          {hasChevron && !isCollapsed ? (
+            <ChevronRight size={14} className="text-gray-400 -ml-4" />
+          ) : (
+            <div className="w-[14px] -ml-4"></div>
+          )}
+          <span className={`${active ? "text-[#0b57d0]" : "text-[#444746]"}`}>
+            {icon}
+          </span>
+          {!isCollapsed && <span className={active ? "text-[#0b57d0]" : "text-[#444746]"}>{label}</span>}
+        </div>
+        {!isCollapsed && count && (
+          <span className="text-xs text-gray-500 pr-2">
+            {count}
+          </span>
         )}
-        <span className={`${active ? "text-[#1a73e8]" : "text-[#444746]"}`}>
-          {icon}
-        </span>
-        {!isCollapsed && <span className={active ? "text-[#1a73e8]" : "text-[#444746]"}>{label}</span>}
-      </div>
-      {!isCollapsed && count && (
-        <span className="text-xs text-gray-500 pr-1">
-          {count}
-        </span>
-      )}
-    </button>
-  );
+      </button>
+    );
+  };
+  function onToggleCollapse(event: MouseEvent<HTMLButtonElement, MouseEvent>): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
-    <aside className={`${isCollapsed ? 'w-20' : 'w-64'} hidden md:flex flex-col bg-[#f8f9fa] h-screen transition-all duration-300 shrink-0 z-10`}>
+    <aside className={`${isCollapsed ? 'w-20' : 'w-[250px]'} hidden md:flex flex-col bg-[#f6f8fc] h-screen transition-all duration-300 shrink-0 z-10 font-sans`}>
 
       {/* 1. Header & Collapse Toggle */}
-      <div className="p-4 flex items-center justify-between h-16 mt-2 pb-0">
-        {!isCollapsed && (
-          <h1 className="text-[17px] font-bold text-[#001d35] flex items-center gap-2">
-            <div className="bg-[#1a73e8] p-1 rounded-[4px]">
-              <Check className="text-white w-4 h-4" strokeWidth={3} />
-            </div>
-            Filo Mail
-          </h1>
-        )}
-        {isCollapsed && (
-          <div className="mx-auto bg-[#1a73e8] p-1 rounded-[4px]">
-            <Check className="text-white w-4 h-4" strokeWidth={3} />
+      <div className={`p-4 flex items-center h-16 mt-1 pb-0 ${isCollapsed ? "justify-center px-0 mt-3" : "justify-start pl-6 gap-3"}`}>
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-4">
+            <button
+              onClick={onToggleCollapse}
+              className="p-2 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-full transition"
+              title="Expand main menu"
+            >
+              <Menu size={20} strokeWidth={1.5} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 w-full">
+            <button
+              onClick={onToggleCollapse}
+              className="p-2 -ml-2 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-full transition"
+              title="Collapse main menu"
+            >
+              <Menu size={20} strokeWidth={1.5} />
+            </button>
+            <h1 className="text-[20px] font-bold text-[#001d35] flex items-center gap-2">
+              <div className="bg-[#1a73e8] p-1 rounded-[6px]">
+                <Check className="text-white w-[18px] h-[18px]" strokeWidth={3} />
+              </div>
+              Mail-Man
+            </h1>
           </div>
         )}
       </div>
 
       {/* 2. Primary Action: Compose Button */}
-      <div className="px-5 mb-6 mt-4">
+      <div className={`mb-5 mt-5 ${isCollapsed ? "flex justify-center px-2" : "pl-6"}`}>
         <button
           onClick={onCompose}
-          className="bg-white hover:bg-gray-50 text-gray-800 text-[15px] font-medium py-3 px-6 rounded-full transition-all shadow-[0_1px_3px_rgba(0,0,0,0.1)] border border-gray-100 hover:shadow-[0_2px_5px_rgba(0,0,0,0.15)] flex items-center justify-center sm:justify-start gap-3">
-          <Pencil size={18} strokeWidth={1.5} className="text-gray-900" />
+          className={`bg-white hover:shadow-md text-[#001d35] font-medium rounded-[16px] transition-all flex items-center justify-center shadow-sm border border-gray-100 ${isCollapsed ? "w-[48px] h-[48px] p-0" : "py-3 px-4 text-[13px] gap-3 w-fit"}`}
+        >
+          <div className="relative">
+            <Pencil size={18} strokeWidth={1.5} className="text-gray-700" />
+            <Sparkles size={10} strokeWidth={2} className="absolute -bottom-1 -right-1 text-gray-700" />
+          </div>
           {!isCollapsed && "Compose"}
         </button>
       </div>
 
       {/* 3. Main Navigation Area */}
-      <div className="flex-1 overflow-y-auto px-3 space-y-8 scrollbar-hide pb-4">
+      <div className="flex-1 overflow-y-auto px-3 space-y-6 scrollbar-hide pb-4">
 
         {/* Smart Views */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
 
-          <NavItem icon={<Mail size={18} strokeWidth={1.5} />} label="Inbox" active={activeMailbox === "Inbox"} onClick={() => onSelectMailbox("Inbox")} count="49" hasChevron={true} />
-          <NavItem icon={<ListTodo size={18} strokeWidth={1.5} />} label="To-do" active={activeMailbox === "To-do"} onClick={() => onSelectMailbox("To-do")} count="9" hasChevron={false} />
+          <NavItem icon={<Mail size={19} strokeWidth={1.5} />} label="Inbox" active={activeMailbox === "Inbox"} onClick={() => onSelectMailbox("Inbox")} count="49" hasChevron={true} />
+          <NavItem icon={<ListTodo size={19} strokeWidth={1.5} />} label="To-do" active={activeMailbox === "To-do"} onClick={() => onSelectMailbox("To-do")} count="9" hasChevron={false} />
 
 
           {/* --- RENDER CUSTOM LABELS WITH HOVER MENU --- */}
@@ -221,8 +261,8 @@ export default function Sidebar({
 
             {!isCollapsed && (
               <NavItem
-                icon={isMoreOpen ? <MoreHorizontal size={18} strokeWidth={1.5} /> : <MoreHorizontal size={18} strokeWidth={1.5} />}
-                label={isMoreOpen ? "Less" : "Less"}
+                icon={isMoreOpen ? <ChevronUp size={18} strokeWidth={1.5} /> : <ChevronDown size={18} strokeWidth={1.5} />}
+                label={isMoreOpen ? "Less" : "More"}
                 onClick={() => setIsMoreOpen(!isMoreOpen)}
               />
             )}

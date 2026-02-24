@@ -13,7 +13,8 @@ import {
   Star,
   Coffee,
   MailOpen,
-  PanelLeft // Added for header
+  PanelLeft,
+  Tag
 } from "lucide-react";
 
 interface EmailFeedProps {
@@ -468,70 +469,84 @@ export default function EmailFeed({
                 )}
                 <div
                   onClick={() => onSelect(email)}
-                  className={`group relative flex items-center gap-4 py-2.5 px-3 border-b border-gray-100 last:border-0 cursor-pointer transition-colors duration-[50ms] ${isSelected
-                    ? "bg-[#eaf1fb]" // Exact blue from Filo Rakuten ID screenshot
-                    : "bg-white hover:bg-[#f8f9fa] hover:shadow-[inset_1px_0_0_#dadce0,inset_-1px_0_0_#dadce0,0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] z-0 hover:z-10"
+                  className={`group relative flex items-center gap-4 py-3 px-3 border border-transparent border-b-gray-200 cursor-pointer transition-colors duration-[50ms] ${isSelected
+                    ? "bg-[#eaf1fb] mx-2 rounded-[20px] border-b-transparent shadow-[0_1px_3px_rgba(0,0,0,0.05)] z-10 my-1"
+                    : "bg-white hover:bg-[#f8f9fa] hover:rounded-[12px] hover:border-transparent hover:mx-1 hover:px-4 hover:shadow-[0_1px_4px_rgba(0,0,0,0.08)] z-0 hover:z-10"
                     }`}
                 >
                   <div className="flex items-center gap-2.5 pl-1 shrink-0">
-                    <input type="checkbox" className="w-[18px] h-[18px] rounded-[4px] border-gray-300 accent-[#1a73e8] cursor-pointer opacity-30 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()} />
-                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarGradient(senderName)} flex items-center justify-center text-white font-semibold text-[13px] shadow-sm ml-1`}>
+                    <input
+                      type="checkbox"
+                      className={`w-[18px] h-[18px] rounded-[4px] border-gray-300 accent-[#1a73e8] cursor-pointer transition-all ${isSelected ? "block" : "hidden group-hover:block"}`}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className={`w-[34px] h-[34px] rounded-full bg-gradient-to-br ${getAvatarGradient(senderName)} flex items-center justify-center text-white font-semibold text-[14px] shadow-sm ml-1 ${isSelected ? "hidden" : "group-hover:hidden"}`}>
                       {senderName.charAt(0).toUpperCase()}
                     </div>
                   </div>
 
-                  <div className="flex-1 min-w-0 pr-20 md:pr-10 flex flex-col justify-center gap-0.5">
-                    <div className="flex justify-between items-baseline">
-                      <h3 className={`text-[14px] truncate pr-2 ${isSelected ? "text-gray-900 font-bold" : (email.isUnread ? "text-gray-900 font-bold" : "text-gray-600 font-semibold")}`}>
-                        {senderName}
-                      </h3>
-                      <span className={`text-[12px] shrink-0 ${isSelected ? "text-gray-800 font-semibold" : (email.isUnread ? "text-gray-900 font-bold" : "text-gray-500 font-medium")}`}>
-                        {formatTime(email.date)}
-                      </span>
-                    </div>
-
-                    <div className={`text-[13.5px] truncate ${email.isUnread ? "text-gray-900 font-bold" : "text-gray-500 font-medium"}`}>
-                      {email.subject}
-                    </div>
-
-                    {/* Inline Badges (e.g. Important, Promotional) */}
-                    {email.appliedLabels && email.appliedLabels.length > 0 && (
-                      <div className="flex gap-1.5 mt-1">
-                        {email.appliedLabels.map((l: string, i: number) => (
-                          <span key={i} className="text-[10.5px] font-bold px-2 py-0.5 rounded-full border text-blue-500 border-blue-200 bg-blue-50 inline-flex items-center gap-1">
-                            {l}
-                          </span>
-                        ))}
+                  {/* Wrapper to dynamically size available space so text doesn't hide behind icons */}
+                  <div className="flex-1 min-w-0 pr-4 flex items-center justify-between">
+                    <div className="min-w-0 flex flex-col justify-center gap-0.5 truncate flex-1">
+                      <div className="flex justify-between items-baseline">
+                        <h3 className={`text-[14px] truncate pr-2 ${isSelected ? "text-gray-900 font-bold" : (email.isUnread ? "text-gray-900 font-bold" : "text-gray-600 font-semibold")}`}>
+                          {senderName}
+                        </h3>
+                        {/* Time only shows if NOT hovering */}
+                        <span className={`text-[12px] shrink-0 group-hover:hidden md:block md:group-hover:hidden ${isSelected ? "text-gray-800 font-semibold" : (email.isUnread ? "text-gray-900 font-bold" : "text-gray-500 font-medium")}`}>
+                          {formatTime(email.date)}
+                        </span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Hover Actions */}
-                  <div className="absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm shadow-[-10px_0_10px_rgba(255,255,255,0.9)] pl-2 py-0.5 flex items-center gap-1 hidden md:flex rounded-l-full">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(email.id, "archive"); }}
-                      className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition" title="Archive"
-                    >
-                      <Archive size={16} strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(email.id, email.isStarred ? "unstar" : "star"); }}
-                      className={`p-1.5 rounded-full transition ${email.isStarred ? "text-[#f4b400] hover:bg-yellow-50" : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"}`} title={email.isStarred ? "Unstar" : "Star"}
-                    >
-                      <Star size={16} strokeWidth={1.5} className={email.isStarred ? "fill-[#f4b400]" : ""} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(email.id, "trash"); }}
-                      className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition" title="Delete"
-                    >
-                      <Trash2 size={16} strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(email.id, email.isUnread ? "read" : "unread"); }}
-                      className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition" title={email.isUnread ? "Mark as Read" : "Mark as Unread"}
-                    >
-                      {email.isUnread ? <MailOpen size={16} strokeWidth={1.5} /> : <Mail size={16} strokeWidth={1.5} />}
-                    </button>
+                      <div className={`text-[13.5px] truncate ${email.isUnread ? "text-gray-900 font-bold" : "text-gray-500 font-medium"}`}>
+                        {email.subject}
+                      </div>
+
+                      {/* Inline Badges (e.g. Important, Promotional) */}
+                      {email.appliedLabels && email.appliedLabels.length > 0 && (
+                        <div className="flex gap-1.5 mt-1">
+                          {email.appliedLabels.map((l: string, i: number) => (
+                            <span key={i} className="text-[10.5px] font-bold px-2 py-0.5 rounded-full border text-blue-500 border-blue-200 bg-blue-50 inline-flex items-center gap-1">
+                              {l}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Hover Actions - Pushes from the right side instead of overlaying purely */}
+                    <div className="hidden group-hover:flex items-center gap-2 pl-4 bg-[#f8f9fa] shrink-0 relative z-10">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAction(email.id, "tag"); }}
+                        className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-full transition" title="Tag"
+                      >
+                        <Tag size={19} strokeWidth={2} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAction(email.id, email.isStarred ? "unstar" : "star"); }}
+                        className={`p-1.5 rounded-full transition ${email.isStarred ? "text-[#f4b400] hover:bg-yellow-50" : "text-gray-700 hover:text-gray-900 hover:bg-gray-200"}`} title={email.isStarred ? "Unstar" : "Star"}
+                      >
+                        <Star size={19} strokeWidth={2} className={email.isStarred ? "fill-[#f4b400]" : ""} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAction(email.id, "archive"); }}
+                        className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-full transition" title="Archive"
+                      >
+                        <Archive size={19} strokeWidth={2} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAction(email.id, "trash"); }}
+                        className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-full transition" title="Delete"
+                      >
+                        <Trash2 size={19} strokeWidth={2} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onAction(email.id, email.isUnread ? "read" : "unread"); }}
+                        className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-full transition" title={email.isUnread ? "Mark as Read" : "Mark as Unread"}
+                      >
+                        {email.isUnread ? <MailOpen size={19} strokeWidth={2} /> : <Mail size={19} strokeWidth={2} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
