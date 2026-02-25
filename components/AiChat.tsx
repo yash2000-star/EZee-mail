@@ -122,7 +122,7 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
 
   return (
     // Outer Sidebar Container
-    <div className="relative w-[380px] shrink-0 h-full bg-[#f9f9f9] border-l border-gray-200/60 flex flex-col animate-in slide-in-from-right-8 duration-300 z-40">
+    <div className="relative w-[380px] shrink-0 h-full bg-[#f9f9f9] dark:bg-slate-950/50 dark:backdrop-blur-xl border-l border-gray-200/60 dark:border-white/5 flex flex-col animate-in slide-in-from-right-8 duration-300 z-40">
 
       {/* Inner Area: Mail-man AI Premium Design (Now fills the whole height naturally) */}
       <div className="flex-1 flex flex-col relative w-full h-full">
@@ -136,25 +136,25 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              className="bg-white border border-gray-200 text-gray-700 text-[12px] font-semibold rounded-lg px-2 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-[#2F95FF]/20 transition-all hover:bg-gray-50"
+              className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white text-[12px] font-semibold rounded-lg px-2 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-[#2F95FF]/20 transition-all hover:bg-gray-50 dark:hover:bg-white/10"
             >
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-              <option value="gpt-4o">ChatGPT-4o</option>
-              <option value="claude-3-opus">Claude 3 Opus</option>
+              <option value="gemini-1.5-pro" className="dark:bg-slate-800">Gemini 1.5 Pro</option>
+              <option value="gpt-4o" className="dark:bg-slate-800">ChatGPT-4o</option>
+              <option value="claude-3-opus" className="dark:bg-slate-800">Claude 3 Opus</option>
             </select>
           </div>
 
           {/* Top Right Mini Controls Pill */}
-          <div className="flex items-center gap-2 bg-[#f0f0f0] rounded-full px-3 py-1.5 border border-gray-200/50">
-            <button className="text-gray-600 hover:text-black transition">
+          <div className="flex items-center gap-2 bg-[#f0f0f0] dark:bg-white/10 dark:backdrop-blur-md rounded-full px-3 py-1.5 border border-gray-200/50 dark:border-white/20">
+            <button className="text-gray-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition">
               <Clock size={14} strokeWidth={2.5} />
             </button>
-            <div className="w-px h-3 bg-gray-300 mx-0.5"></div>
-            <button className="text-gray-600 hover:text-black transition">
+            <div className="w-px h-3 bg-gray-300 dark:bg-white/20 mx-0.5"></div>
+            <button className="text-gray-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition">
               <LayoutPanelLeft size={14} strokeWidth={2.5} />
             </button>
-            <div className="w-px h-3 bg-gray-300 mx-0.5"></div>
-            <button onClick={onClose} className="text-gray-600 hover:text-black transition">
+            <div className="w-px h-3 bg-gray-300 dark:bg-white/20 mx-0.5"></div>
+            <button onClick={onClose} className="text-gray-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition">
               <X size={15} strokeWidth={2.5} />
             </button>
           </div>
@@ -166,8 +166,8 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
           {messages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in duration-500 mt-10">
 
-              <h3 className="text-[22px] font-bold text-black tracking-tight">Hi {userName}</h3>
-              <p className="text-gray-500 text-[15px] mb-12">
+              <h3 className="text-[22px] font-bold text-black dark:text-white tracking-tight">Hi {userName}</h3>
+              <p className="text-gray-500 dark:text-slate-400 text-[15px] mb-12">
                 Need help with an email?
               </p>
 
@@ -176,9 +176,9 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
                   <button
                     key={i}
                     onClick={() => sendMessage(prompt.text)}
-                    className="w-full text-left px-5 py-4 rounded-[16px] bg-[#f0f0f0] hover:bg-[#e8e8e8] text-gray-800 transition-colors text-[14px] leading-relaxed flex items-start gap-3 group"
+                    className="w-full text-left px-5 py-4 rounded-[16px] bg-[#f0f0f0] dark:bg-white/5 dark:backdrop-blur-md dark:border dark:border-white/10 hover:bg-[#e8e8e8] dark:hover:bg-white/10 text-gray-800 dark:text-white transition-colors text-[14px] leading-relaxed flex items-start gap-3 group"
                   >
-                    <prompt.icon size={18} className="text-[#2F95FF] shrink-0 mt-0.5" strokeWidth={2} />
+                    <prompt.icon size={18} className="text-[#2F95FF] dark:text-blue-400 shrink-0 mt-0.5" strokeWidth={2} />
                     <span className="font-medium">{prompt.text}</span>
                   </button>
                 ))}
@@ -194,8 +194,8 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
                 >
                   <div
                     className={`p-3.5 rounded-[18px] text-[15px] leading-relaxed shadow-sm max-w-[85%] ${msg.role === "user"
-                      ? "bg-[#f0f0f0] text-gray-900 rounded-tr-[4px]"
-                      : "bg-white text-gray-800 rounded-tl-[4px] border border-gray-100"
+                      ? "bg-[#f0f0f0] dark:bg-white/10 dark:backdrop-blur-md text-gray-900 dark:text-white rounded-tr-[4px]"
+                      : "bg-white dark:bg-white/5 dark:backdrop-blur-md text-gray-800 dark:text-slate-200 rounded-tl-[4px] border border-gray-100 dark:border-white/10"
                       }`}
                   >
                     {msg.content}
@@ -205,7 +205,7 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
 
               {isLoading && (
                 <div className="flex gap-3">
-                  <div className="bg-white border border-gray-100 p-4 rounded-[18px] rounded-tl-[4px] text-[15px] text-gray-400 flex gap-1 items-center h-[52px]">
+                  <div className="bg-white dark:bg-white/5 dark:backdrop-blur-md border border-gray-100 dark:border-white/10 p-4 rounded-[18px] rounded-tl-[4px] text-[15px] text-gray-400 dark:text-slate-300 flex gap-1 items-center h-[52px]">
                     <span className="animate-bounce">●</span>
                     <span className="animate-bounce delay-100">●</span>
                     <span className="animate-bounce delay-200">●</span>
@@ -218,7 +218,7 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
 
         {/* Input Area */}
         <div className="p-5 pt-2 bg-transparent shrink-0">
-          <div className="relative bg-white rounded-[24px] border border-gray-200 shadow-sm focus-within:border-[#2F95FF] focus-within:ring-2 focus-within:ring-[#2F95FF]/20 transition-all flex items-end min-h-[100px] p-3">
+          <div className="relative bg-white dark:bg-white/5 dark:backdrop-blur-xl rounded-[24px] border border-gray-200 dark:border-white/10 shadow-sm focus-within:border-[#2F95FF] dark:focus-within:border-white/20 focus-within:ring-2 focus-within:ring-[#2F95FF]/20 transition-all flex items-end min-h-[100px] p-3">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -229,12 +229,12 @@ export default function AiChat({ isOpen, onClose, emails, apiKeys }: AiChatProps
                 }
               }}
               placeholder="Search, write, or ask anything..."
-              className="flex-1 bg-transparent text-gray-900 text-[15px] p-2 outline-none resize-none h-full placeholder:text-gray-400"
+              className="flex-1 bg-transparent text-gray-900 dark:text-white text-[15px] p-2 outline-none resize-none h-full placeholder:text-gray-400 dark:placeholder-slate-500"
             />
             <button
               onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
-              className="absolute right-3 bottom-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[#a0a0a0] hover:bg-[#808080] text-white"
+              className="absolute right-3 bottom-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[#a0a0a0] dark:bg-white/10 hover:bg-[#808080] dark:hover:bg-white/20 text-white"
             >
               <ArrowUp size={18} strokeWidth={2.5} />
             </button>

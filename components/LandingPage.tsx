@@ -1,13 +1,24 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from "framer-motion";
 import {
   ArrowRight, Check, Bot, Shield, Sparkles,
   Mail, Plus, Search, Tag, BarChart3, Clock,
   ChevronRight, Star, Menu, X
 } from "lucide-react";
+import { TextGenerateEffect } from "./ui/text-generate-effect";
+import { ContainerScroll } from "./ui/container-scroll-animation";
+import { PlaceholdersAndVanishInput } from "./ui/placeholders-and-vanish-input";
+import { HoverEffect } from "./ui/card-hover-effect";
+import { MovingBorder } from "./ui/moving-border";
+import { FlipWords } from "./ui/flip-words";
+import { TrainYourAIAnimation, MultiModelHubAnimation, TaskExtractionAnimation, AddYourBrandAnimation } from "./ui/bento-animations";
+import { StickyScrollUseCases } from "./ui/sticky-scroll-use-cases";
+import { Geist } from "next/font/google";
+
+const geist = Geist({ subsets: ["latin"] });
 
 // ===== ANIMATION HELPERS =====
 const fadeUp = {
@@ -58,12 +69,69 @@ const FAQS = [
   },
 ];
 
+function SpotlightCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <motion.div
+      variants={cardFade}
+      className={`group relative ${className}`}
+      onMouseMove={handleMouseMove}
+    >
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 transition duration-300 group-hover:opacity-100 dark:group-hover:opacity-100 z-10"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(59, 130, 246, 0.12),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      {children}
+    </motion.div>
+  );
+}
 
 export default function LandingPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [useCaseIdx, setUseCaseIdx] = useState(0);
   const [inputVal, setInputVal] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(false);
+
+  const footerRef = useRef<HTMLElement>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  useEffect(() => {
+    if (!footerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setFooterHeight((entry.target as HTMLElement).offsetHeight);
+      }
+    });
+    resizeObserver.observe(footerRef.current);
+    setFooterHeight(footerRef.current.offsetHeight);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 80);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Cycle through use cases
   useEffect(() => {
@@ -74,450 +142,623 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans overflow-x-hidden selection:bg-blue-100">
+    <div className={`min-h-screen bg-slate-50 text-slate-900 ${geist.className} overflow-x-clip selection:bg-blue-100`}>
 
-      {/* ─── HERO BACKGROUND GLOW ─── */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <div className="absolute top-[-30%] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full bg-gradient-radial from-blue-100 via-indigo-50 to-transparent opacity-80 blur-[120px]" />
-        <div className="absolute top-[60px] right-[-20%] w-[600px] h-[500px] rounded-full bg-gradient-radial from-purple-50 to-transparent opacity-50 blur-[100px]" />
-      </div>
+      <main
+        className="relative z-10 bg-white rounded-b-[2.5rem] md:rounded-b-[4rem] shadow-[0_20px_80px_rgba(0,0,0,0.08)]"
+        style={{ marginBottom: footerHeight }}
+      >
 
-      {/* ─── 1. NAVBAR ─── */}
-      <nav className="fixed top-4 inset-x-0 z-50 px-4">
-        <div className="max-w-6xl mx-auto backdrop-blur-md bg-white/75 border border-gray-100 shadow-[0_4px_24px_rgba(0,0,0,0.06)] rounded-2xl px-6 py-3.5 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30">
-              <Mail size={16} className="text-white" strokeWidth={2.5} />
-            </div>
-            <span className="font-extrabold text-xl text-slate-900 tracking-tight">Mail-man</span>
-          </div>
+        {/* Background glow removed for Lamp Effect */}
 
-          {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-8">
-            {["Features", "Pricing", "About"].map(link => (
-              <a key={link} href={`#${link.toLowerCase()}`} className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition">
-                {link}
-              </a>
-            ))}
-          </div>
-
-          {/* CTA + Hamburger */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => signIn("google")}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
-            >
-              Sign Up <span className="hidden sm:inline">Free</span> <ArrowRight size={14} strokeWidth={3} />
-            </button>
-            {/* Mobile hamburger */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-slate-600 hover:text-slate-900 transition"
-            >
-              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden mt-2 mx-auto max-w-6xl bg-white/95 backdrop-blur-md border border-gray-100 rounded-2xl shadow-lg px-6 py-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-            {["Features", "Pricing", "About"].map(link => (
-              <a
-                key={link}
-                href={`#${link.toLowerCase()}`}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition py-1"
-              >
-                {link}
-              </a>
-            ))}
-          </div>
-        )}
-      </nav>
-
-      {/* ─── 2. HERO SECTION ─── */}
-      <section className="relative z-10 pt-32 md:pt-48 pb-24 md:pb-32 px-6 max-w-6xl mx-auto text-center">
-
-        {/* Badge */}
-        <motion.div {...fadeUp} className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-bold mb-8">
-          <Sparkles size={14} className="fill-blue-200" />
-          Introducing Mail-man AI
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          {...fadeUp}
-          transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-          className="text-6xl md:text-7xl lg:text-[88px] font-black tracking-tighter leading-tight mb-8 text-slate-950"
-        >
-          Power your Inbox<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500">
-            with Clean AI.
-          </span>
-        </motion.h1>
-
-        {/* Sub-headline */}
-        <motion.p
-          {...fadeUp}
-          transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-          className="text-xl text-slate-500 font-medium max-w-2xl mx-auto mb-12 leading-relaxed"
-        >
-          Connect your own AI keys. Get intelligent summaries, auto-extracted tasks, and perfect draft replies—without any monthly subscription.
-        </motion.p>
-
-        {/* Glassmorphic Input */}
-        <motion.div
-          {...fadeUp}
-          transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
-          className="max-w-xl mx-auto"
-        >
-          <div className="relative group bg-white/80 backdrop-blur-md border border-gray-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] flex items-center gap-3 p-2 pl-5 focus-within:border-blue-300 focus-within:shadow-[0_10px_40px_rgba(59,130,246,0.12)] transition-all">
-            <Search size={18} className="text-slate-400 shrink-0" />
-            <input
-              value={inputVal}
-              onChange={e => setInputVal(e.target.value)}
-              placeholder="Ask anything about your inbox..."
-              className="flex-1 text-slate-700 font-medium text-sm bg-transparent outline-none placeholder:text-slate-400"
-            />
-            <button
-              onClick={() => signIn("google")}
-              className="bg-blue-600 text-white rounded-xl px-4 py-2.5 text-sm font-bold transition hover:bg-blue-700 flex items-center gap-1.5 shrink-0"
-            >
-              Try it <ArrowRight size={14} strokeWidth={3} />
-            </button>
-          </div>
-          <p className="text-xs text-slate-400 font-medium mt-3">No account needed — connect Gmail in 1 click.</p>
-        </motion.div>
-
-        {/* Social Proof Avatars */}
-        <motion.div
-          {...fadeUp}
-          transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
-          className="flex items-center justify-center gap-3 mt-10"
-        >
-          <div className="flex -space-x-3">
-            {["bg-blue-400", "bg-violet-400", "bg-emerald-400", "bg-amber-400"].map((c, i) => (
-              <div key={i} className={`w-9 h-9 ${c} rounded-full border-2 border-white flex items-center justify-center`}>
-                <Star size={12} className="text-white fill-white" />
+        {/* ─── 1. NAVBAR (Dynamic Scroll Style) ─── */}
+        <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 pointer-events-none px-6 py-4`}>
+          <div className={`pointer-events-auto max-w-6xl mx-auto flex items-center justify-between transition-all duration-300 ${isScrolled
+            ? "bg-white/70 backdrop-blur-xl border border-gray-200/50 shadow-lg shadow-black/[0.03] rounded-2xl px-6 py-3"
+            : "px-2 py-2"
+            }`}>
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <div className={`transition-colors duration-300 flex items-center justify-center rounded-xl w-8 h-8 ${isScrolled ? "bg-blue-600 shadow-md shadow-blue-500/20" : ""}`}>
+                <Mail size={18} strokeWidth={isScrolled ? 3 : 2.5} className={isScrolled ? "text-white" : "text-white"} />
               </div>
-            ))}
-          </div>
-          <span className="text-sm font-semibold text-slate-500"><span className="text-slate-900 font-bold">1,200+</span> professionals use Mail-man</span>
-        </motion.div>
-      </section>
+              <span className={`font-bold transition-colors duration-300 ${isScrolled ? "text-xl text-slate-900 tracking-tight" : "text-lg text-white tracking-tight"}`}>Mail-man</span>
+            </div>
 
-      {/* ─── 3. LOGO CAROUSEL ─── */}
-      <section className="relative z-10 py-12 border-y border-gray-100 bg-slate-50/60 overflow-hidden">
-        <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-8">Trusted by teams at</p>
-        <div className="flex items-center gap-20 animate-marquee whitespace-nowrap">
-          {[...LOGOS, ...LOGOS].map((logo, i) => (
-            <span key={i} className="text-lg font-black text-slate-300 grayscale shrink-0">
-              {logo}
-            </span>
-          ))}
-        </div>
-      </section>
+            {/* Desktop Links */}
+            <div className="hidden md:flex items-center gap-8">
+              {["Products", "Pricing", "Blog", "Resources"].map(link => (
+                <a
+                  key={link}
+                  href={`#${link.toLowerCase()}`}
+                  className={`text-sm font-semibold transition duration-300 ${isScrolled ? "text-slate-500 hover:text-slate-900" : "text-slate-300 hover:text-white"
+                    }`}
+                >
+                  {link}
+                </a>
+              ))}
+            </div>
 
-      {/* ─── 4. BENTO FEATURES GRID ─── */}
-      <section id="features" className="relative z-10 max-w-6xl mx-auto px-6 py-28">
-        <motion.div {...fadeUp} className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-950 mb-4">
-            Every tool you need.<br />Nothing you don't.
-          </h2>
-          <p className="text-slate-500 font-medium text-lg">Intelligent email management, powered by the AI model of your choice.</p>
-        </motion.div>
-
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="whileInView"
-          viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 md:grid-cols-12 gap-5"
-        >
-          {/* Large Left Card */}
-          <motion.div variants={cardFade} className="md:col-span-8 bg-white border border-gray-100 rounded-3xl p-10 shadow-[0_10px_40px_rgba(0,0,0,0.05)] flex flex-col gap-8 group hover:shadow-[0_20px_60px_rgba(59,130,246,0.08)] transition-shadow">
+            {/* CTA + Hamburger */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><Sparkles className="text-blue-600" size={20} /></div>
-              <div>
-                <h3 className="text-xl font-black text-slate-900">Train Your AI</h3>
-                <p className="text-sm text-slate-500 font-medium">Create smart labels with natural language instructions</p>
-              </div>
+              <button
+                onClick={() => signIn("google")}
+                className={`text-sm font-bold py-2.5 px-5 rounded-xl transition-all duration-300 flex items-center gap-2 ${isScrolled
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20"
+                  : "bg-white/10 hover:bg-white/20 border border-white/5 text-slate-200 backdrop-blur-md"
+                  }`}
+              >
+                Sign up {isScrolled && <ArrowRight size={14} strokeWidth={3} className="inline ml-1" />}
+              </button>
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className={`md:hidden p-2 transition duration-300 ${isScrolled ? "text-slate-600 hover:text-slate-900" : "text-slate-400 hover:text-white"
+                  }`}
+              >
+                {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
             </div>
-            {/* Mock UI */}
-            <div className="bg-slate-50 rounded-2xl p-5 border border-gray-100 flex-1 space-y-3">
-              <div className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-2">Active Smart Label</div>
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                  <p className="text-sm text-slate-700 italic font-medium">
-                    "Flag all emails containing an invoice or a payment request due within 7 days."
-                  </p>
+          </div>
+
+          {/* Mobile Dropdown Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden mt-4 mx-auto max-w-6xl bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl px-6 py-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              {["Products", "Pricing", "Blog", "Resources"].map(link => (
+                <a
+                  key={link}
+                  href={`#${link.toLowerCase()}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-sm font-semibold text-slate-300 hover:text-white transition py-1"
+                >
+                  {link}
+                </a>
+              ))}
+            </div>
+          )}
+        </nav>
+
+        {/* ─── 2. HERO SECTION WITH BLUE GLOW & DASHBOARD SCROLL ─── */}
+        <section className="relative z-10 bg-slate-950 w-full overflow-hidden flex flex-col items-center min-h-[100vh]">
+
+          {/* Subtle Grid Background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+
+          {/* Massive Blue Diffuse Glow */}
+          <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-gradient-radial from-blue-600/40 via-blue-600/10 to-transparent rounded-full blur-[100px] pointer-events-none"></div>
+
+          <div className="pt-24 md:pt-32 relative z-20 w-full flex flex-col items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="flex flex-col items-center justify-center text-center mt-8 w-full px-4"
+            >
+              {/* Headline */}
+              <h1 className="text-4xl sm:text-6xl md:text-7xl font-sans tracking-tight leading-[1.15] mb-8 text-slate-300 max-w-4xl font-light">
+                <TextGenerateEffect
+                  words="AI Powered Email, Built to Save You Time"
+                  className="text-white font-medium"
+                  duration={0.3}
+                />
+              </h1>
+
+              {/* Animated Aceternity Input Large Panel */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.5, duration: 0.8, ease: "easeOut" }}
+                className="relative w-full max-w-2xl mx-auto mb-20"
+              >
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[150%] bg-blue-600/50 rounded-[4rem] blur-[60px] pointer-events-none -z-10"></div>
+
+                <div className="relative bg-white/10 backdrop-blur-2xl border border-white/30 rounded-[2rem] p-3 shadow-[0_20px_60px_rgba(0,0,0,0.1),0_0_40px_rgba(255,255,255,0.05),inset_0_1px_1px_rgba(255,255,255,0.3)] h-20 flex items-center">
+
+                  {/* Left side mock buttons to match reference image exactly */}
+                  <div className="hidden sm:flex items-center gap-2 absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                    <div className="w-8 h-8 rounded-full bg-white/40 border border-white/20 flex items-center justify-center text-slate-600 shadow-sm backdrop-blur-md">
+                      <Plus size={14} strokeWidth={2.5} />
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white/40 border border-white/20 flex items-center justify-center text-slate-600 shadow-sm backdrop-blur-md">
+                      <div className="w-2.5 h-3.5 border-2 border-current rounded-full" />
+                    </div>
+                  </div>
+
+                  <PlaceholdersAndVanishInput
+                    placeholders={[
+                      "Summarize my inbox...",
+                      "Find the email from my boss...",
+                      "Create a task from the recent invoice...",
+                      "Reply to The Hindu...",
+                    ]}
+                    onChange={(e) => setInputVal(e.target.value)}
+                    onSubmit={(e) => signIn("google")}
+                  />
                 </div>
-              </div>
-              <div className="flex gap-2 pt-1">
-                {["Urgent", "Finance", "Reply Needed"].map(tag => (
-                  <span key={tag} className="text-[11px] font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100">{tag}</span>
+              </motion.div>
+
+              {/* ─── LOGO CAROUSEL (Moved Below Search Bar) 
+            <div className="w-full border-t border-b border-white/5 py-10 bg-transparent overflow-hidden relative mt-4">
+              <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Trusted by teams at</p>
+              <div className="flex items-center gap-28 animate-marquee whitespace-nowrap opacity-60">
+                {[...LOGOS, ...LOGOS, ...LOGOS].map((logo, i) => (
+                  <span key={i} className="text-xl font-bold text-slate-400 shrink-0">
+                    {logo}
+                  </span>
                 ))}
               </div>
-            </div>
-          </motion.div>
+            </div> ─── */}
 
-          {/* Top Right — Add Your Brand */}
-          <motion.div variants={cardFade} className="md:col-span-4 bg-white border border-gray-100 rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.05)] group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-shadow">
-            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-6"><Tag className="text-emerald-600" size={20} /></div>
-            <h3 className="text-xl font-black text-slate-900 mb-3">Add Your Brand</h3>
-            <p className="text-slate-500 font-medium text-sm leading-relaxed">Custom labels with colors, smart AI instructions, and retroactive email tagging across your last 50 messages.</p>
-            <div className="mt-6 flex gap-2">
-              {["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-red-400", "bg-purple-500"].map(c => (
-                <div key={c} className={`w-7 h-7 ${c} rounded-full shadow-md cursor-pointer hover:scale-110 transition-transform`} />
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Bottom Left — Chat with Inbox */}
-          <motion.div variants={cardFade} className="md:col-span-5 bg-blue-600 rounded-3xl p-8 shadow-[0_10px_40px_rgba(59,130,246,0.25)] text-white overflow-hidden relative group">
-            <div className="relative z-10">
-              <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mb-6"><Bot size={20} /></div>
-              <h3 className="text-2xl font-black mb-3">Chat with Inbox</h3>
-              <p className="text-blue-100 font-medium text-sm leading-relaxed">Ask plain-English questions about your email threads. "What did Sarah say about the proposal?"</p>
-            </div>
-            {/* Mock chat bubble */}
-            <div className="absolute bottom-6 right-6 left-6 bg-white/15 backdrop-blur rounded-xl p-3 text-sm text-white/80 italic font-medium group-hover:bg-white/20 transition">
-              "Found 3 messages from Sarah about the Q3 proposal. Want a summary?"
-            </div>
-          </motion.div>
-
-          {/* Bottom Mid — Multi Model */}
-          <motion.div variants={cardFade} className="md:col-span-4 bg-white border border-gray-100 rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
-            <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center mb-6"><BarChart3 className="text-violet-600" size={20} /></div>
-            <h3 className="text-xl font-black text-slate-900 mb-3">Multi-Model Hub</h3>
-            <p className="text-slate-500 font-medium text-sm leading-relaxed">Switch between Gemini, ChatGPT, and Claude with one click. Use your own keys for $0/mo AI.</p>
-            <div className="mt-6 space-y-2">
-              {[{ name: "Gemini", color: "bg-blue-500" }, { name: "GPT-4o", color: "bg-emerald-500" }, { name: "Claude", color: "bg-amber-500" }].map(m => (
-                <div key={m.name} className="flex items-center gap-2.5">
-                  <div className={`w-2 h-2 rounded-full ${m.color}`} />
-                  <span className="text-xs text-slate-600 font-bold">{m.name}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Bottom Right — Smart Scheduling */}
-          <motion.div variants={cardFade} className="md:col-span-3 bg-white border border-gray-100 rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
-            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-6"><Clock className="text-amber-600" size={20} /></div>
-            <h3 className="text-xl font-black text-slate-900 mb-3">Task Extraction</h3>
-            <p className="text-slate-500 font-medium text-sm leading-relaxed">AI pulls deadlines from your inbox directly into your Master To-Do dashboard.</p>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ─── 5. STATS SECTION ─── */}
-      <section className="relative z-10 bg-slate-950 py-20 px-6">
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="whileInView"
-          viewport={{ once: true }}
-          className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center text-white"
-        >
-          {[
-            { num: "1,200+", label: "Active Users" },
-            { num: "95%", label: "Time Saved on Email Triage" },
-            { num: "$0", label: "Monthly Cost with Your Own Key" },
-          ].map(stat => (
-            <motion.div key={stat.label} variants={cardFade}>
-              <p className="text-5xl font-black tracking-tighter text-white mb-2">{stat.num}</p>
-              <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">{stat.label}</p>
             </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ─── 6. DYNAMIC USE CASES ─── */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 py-28">
-        <motion.div {...fadeUp} className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-950 mb-4">
-            The AI inbox built for{" "}
-            <span className="relative inline-block">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={useCaseIdx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.35 }}
-                  className="text-blue-600 inline-block"
-                >
-                  {USE_CASES[useCaseIdx]}
-                </motion.span>
-              </AnimatePresence>
-            </span>
-          </h2>
-          <p className="text-slate-500 font-medium text-lg">Whatever you do, Mail-man shapes itself to your workflow.</p>
-        </motion.div>
-
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="whileInView"
-          viewport={{ once: true, margin: "-80px" }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          {[
-            { icon: <BarChart3 className="text-blue-600" size={24} />, bg: "bg-blue-50", title: "Founders & Startups", desc: "Organize investor updates, pitch deck intros, and customer conversations automatically." },
-            { icon: <Bot className="text-violet-600" size={24} />, bg: "bg-violet-50", title: "Freelancers", desc: "Never miss a client follow-up. Extract project deadlines and create tasks from inbound emails." },
-            { icon: <Shield className="text-emerald-600" size={24} />, bg: "bg-emerald-50", title: "Enterprise Teams", desc: "Classify thousands of emails per team with custom labels, private key vaults, and thread summaries." },
-          ].map(card => (
-            <motion.div key={card.title} variants={cardFade} className="bg-white border border-gray-100 rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.05)] hover:-translate-y-1 transition-transform duration-300">
-              <div className={`w-12 h-12 ${card.bg} rounded-2xl flex items-center justify-center mb-6`}>{card.icon}</div>
-              <h3 className="text-xl font-black text-slate-900 mb-3">{card.title}</h3>
-              <p className="text-slate-500 font-medium text-sm leading-relaxed">{card.desc}</p>
-              <button className="mt-6 flex items-center gap-1 text-sm font-bold text-blue-600 hover:gap-2 transition-all">
-                Learn more <ChevronRight size={16} />
-              </button>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ─── 7. PRICING ─── */}
-      <section id="pricing" className="relative z-10 max-w-5xl mx-auto px-6 py-28">
-        <motion.div {...fadeUp} className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-950 mb-4">Simple, honest pricing.</h2>
-          <p className="text-slate-500 font-medium text-lg">Start for free. Upgrade when you're ready.</p>
-        </motion.div>
-
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="whileInView"
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch"
-        >
-          {/* Free Card */}
-          <motion.div variants={cardFade} className="bg-white border border-gray-200 rounded-3xl p-10 shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
-            <p className="text-sm font-extrabold text-slate-400 uppercase tracking-widest mb-4">Free</p>
-            <p className="text-5xl font-black text-slate-900 mb-2">$0<span className="text-lg font-bold text-slate-400">/mo</span></p>
-            <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">Everything you need to get started with AI email management.</p>
-            <ul className="space-y-4 mb-10">
-              {["30 emails per sync", "Smart Labels (3 max)", "Basic AI Summaries", "Gmail Integration"].map(f => (
-                <li key={f} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-                  <Check size={16} className="text-emerald-500" strokeWidth={3} /> {f}
-                </li>
-              ))}
-            </ul>
-            <button onClick={() => signIn("google")} className="w-full py-3.5 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition">
-              Get Started Free
-            </button>
-          </motion.div>
-
-          {/* Pro Card */}
-          <motion.div variants={cardFade} className="bg-white border-2 border-blue-200 rounded-3xl p-10 shadow-[0_10px_60px_rgba(59,130,246,0.12)] relative overflow-hidden">
-            <div className="absolute top-4 right-4 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Most Popular</div>
-            <p className="text-sm font-extrabold text-blue-600 uppercase tracking-widest mb-4">Pro</p>
-            <p className="text-5xl font-black text-slate-900 mb-2">
-              $0<span className="text-lg font-bold text-slate-400">/mo</span>
-            </p>
-            <p className="text-slate-500 font-medium text-sm mb-1">with your own API key</p>
-            <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">Full unlimited access. No usage limits.</p>
-            <ul className="space-y-4 mb-10">
-              {["Unlimited email syncing", "Unlimited Smart Labels", "AI Chat with Inbox", "Multi-Model Support (Gemini, GPT, Claude)", "Master To-Do Dashboard", "Priority Support"].map(f => (
-                <li key={f} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
-                  <Check size={16} className="text-blue-600" strokeWidth={3} /> {f}
-                </li>
-              ))}
-            </ul>
-            <button onClick={() => signIn("google")} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition shadow-lg shadow-blue-600/20">
-              Connect Gmail Now
-            </button>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ─── 8. FAQ ─── */}
-      <section className="relative z-10 max-w-3xl mx-auto px-6 py-16">
-        <motion.div {...fadeUp} className="text-center mb-16">
-          <h2 className="text-4xl font-black tracking-tight text-slate-950 mb-4">Frequently asked.</h2>
-        </motion.div>
-        <motion.div {...fadeUp} className="space-y-3">
-          {FAQS.map((faq, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-              <button
-                onClick={() => setActiveFaq(activeFaq === i ? null : i)}
-                className="w-full flex items-center justify-between px-7 py-5 text-left"
-              >
-                <span className="font-bold text-slate-900 text-[15px] pr-4">{faq.q}</span>
-                <motion.span
-                  animate={{ rotate: activeFaq === i ? 45 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="shrink-0 w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-slate-400 font-bold text-xl"
-                >
-                  <Plus size={16} />
-                </motion.span>
-              </button>
-              <AnimatePresence initial={false}>
-                {activeFaq === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                  >
-                    <p className="px-7 pb-6 text-sm text-slate-500 font-medium leading-relaxed">
-                      {faq.a}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* ─── 9. BOTTOM CTA ─── */}
-      <section className="relative z-10 px-6 py-8 mb-12">
-        <motion.div
-          {...fadeUp}
-          className="max-w-5xl mx-auto bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-500 rounded-3xl p-16 text-center text-white relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+')] opacity-50"></div>
-          <div className="relative z-10">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">
-              Create your own AI email agent.
-            </h2>
-            <p className="text-blue-100 font-medium text-xl mb-10 max-w-2xl mx-auto leading-relaxed">
-              Connect Gmail, add your API key, and Mail-man does the rest. No monthly fees. Absolute privacy.
-            </p>
-            <button
-              onClick={() => signIn("google")}
-              className="bg-white text-blue-600 hover:bg-blue-50 font-black text-lg py-5 px-12 rounded-2xl transition-all shadow-xl flex items-center gap-3 mx-auto"
-            >
-              Get Started Free <ArrowRight size={22} strokeWidth={3} />
-            </button>
           </div>
-        </motion.div>
-      </section>
+
+          {/* The Dashboard Scroll (Wow Factor) */}
+          <div className="w-full -mt-[5rem] sm:-mt-[10rem] md:-mt-[15rem] mb-20 relative z-20">
+            <ContainerScroll
+              titleComponent={
+                <div className="flex flex-col items-center mb-10 text-white">
+                  {/* Optional additional title, omitted for cleaner look */}
+                </div>
+              }
+            >
+              {/* Mock Dashboard inside the ContainerScroll */}
+              <div className="w-full h-full bg-white rounded-2xl flex border border-gray-200 overflow-hidden text-slate-900 pointer-events-none select-none">
+                {/* Sidebar */}
+                <div className="hidden sm:flex w-56 bg-slate-50 border-r border-gray-200 p-4 flex-col gap-2">
+                  <div className="flex items-center gap-2 mb-6 ml-1 mt-2">
+                    <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <Mail size={14} className="text-white" strokeWidth={2.5} />
+                    </div>
+                    <span className="font-extrabold text-lg tracking-tight">Mail-man</span>
+                  </div>
+                  <div className="h-9 bg-blue-100/50 rounded-lg text-blue-700 font-bold px-3 flex items-center gap-2 text-sm"><Mail size={16} strokeWidth={2.5} /> Inbox</div>
+                  <div className="h-9 rounded-lg text-slate-600 font-semibold px-3 flex items-center gap-2 text-sm"><Star size={16} strokeWidth={2} /> Starred</div>
+                  <div className="h-9 rounded-lg text-slate-600 font-semibold px-3 flex items-center gap-2 text-sm"><Check size={16} strokeWidth={2} /> To-do</div>
+
+                  <div className="mt-8 text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-3 mb-1">Smart Labels</div>
+                  <div className="h-8 rounded-lg text-slate-600 font-semibold px-3 flex items-center gap-2 text-xs"><div className="w-2 h-2 rounded-full bg-purple-500"></div> Finance</div>
+                  <div className="h-8 rounded-lg text-slate-600 font-semibold px-3 flex items-center gap-2 text-xs"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Investors</div>
+                </div>
+                {/* Feed */}
+                <div className="flex-1 flex flex-col bg-white">
+                  <div className="h-16 border-b border-gray-100 flex items-center px-6 justify-between">
+                    <h2 className="text-xl font-bold font-sans tracking-tight">Inbox</h2>
+                    <div className="bg-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2 text-slate-500 text-sm font-semibold">
+                      <Search size={14} /> Search emails...
+                    </div>
+                  </div>
+                  <div className="p-4 flex flex-col gap-3 h-full overflow-hidden">
+                    {[
+                      { from: "Alex (Stripe)", subject: "Payment received: $499", tag: "Finance", color: "bg-purple-50 border border-purple-100 text-purple-600", snippet: "Your recent invoice #INV-2049 has been successfully paid by the client..." },
+                      { from: "Sarah (Investor)", subject: "Following up on Q3 deck", tag: "Investors", color: "bg-emerald-50 border border-emerald-100 text-emerald-600", snippet: "Hi team, loved the traction you showed in the Q3 deck. Can we schedule a quick call..." },
+                      { from: "Figma Team", subject: "New comments on Design file", tag: "Work", color: "bg-blue-50 border border-blue-100 text-blue-600", snippet: "Jane added 3 new comments to 'Landing Page V2'. Review them now..." },
+                    ].map((item, i) => (
+                      <div key={i} className="p-4 border border-gray-100 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] bg-white flex flex-col gap-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-[15px]">{item.from}</span>
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${item.color}`}>{item.tag}</span>
+                        </div>
+                        <span className="text-sm font-bold text-slate-800">{item.subject}</span>
+                        <span className="text-xs font-medium text-slate-500 truncate">{item.snippet}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* AI Pane */}
+                <div className="hidden lg:flex w-[22rem] border-l border-gray-200 bg-slate-50/50 p-5 flex-col">
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-500/20"><Bot size={16} strokeWidth={2.5} /></div>
+                    <span className="font-bold text-slate-800">Mail-man AI</span>
+                  </div>
+
+                  <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 p-5 mt-4 flex flex-col gap-4">
+                    <div className="flex items-start gap-3">
+                      <Sparkles size={16} className="text-blue-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 mb-1">Thread Insight</p>
+                        <p className="text-xs text-slate-500 font-medium leading-relaxed">Sarah is interested in the Q3 deck and wants to schedule a call next week. You need to reply to her by Friday.</p>
+                      </div>
+                    </div>
+                    <div className="h-px bg-gray-100 w-full my-1"></div>
+                    <div>
+                      <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Suggested Action</p>
+                      <div className="bg-blue-50 text-blue-600 text-xs font-bold py-2 rounded-lg text-center cursor-pointer border border-blue-100 hover:bg-blue-100 transition">Draft Reply to Sarah</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ContainerScroll>
+          </div>
+        </section>
+
+
+        {/* ─── 4. BENTO FEATURES GRID ─── */}
+        <section id="features" className="relative z-10 max-w-6xl mx-auto px-6 py-28">
+          <motion.div {...fadeUp} className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-950 mb-4">
+              Every tool you need.<br />Nothing you don't.
+            </h2>
+            <p className="text-slate-500 font-medium text-lg">Intelligent email management, powered by the AI model of your choice.</p>
+          </motion.div>
+
+          <HoverEffect
+            items={[
+              {
+                className: "md:col-span-8",
+                children: (
+                  <div className="flex flex-col h-full gap-8">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
+                        <Sparkles className="text-blue-600" size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-slate-900">
+                          Train Your AI
+                        </h3>
+                        <p className="text-sm text-slate-500 font-medium">
+                          Create smart labels with natural language instructions
+                        </p>
+                      </div>
+                    </div>
+                    <TrainYourAIAnimation />
+                  </div>
+                ),
+              },
+              {
+                className: "md:col-span-4",
+                children: (
+                  <div className="flex flex-col h-full">
+                    <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-6">
+                      <Tag className="text-emerald-600" size={20} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-3">
+                      Add Your Brand
+                    </h3>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed flex-1">
+                      Custom labels with colors, smart AI instructions, and retroactive email tagging across your last 50 messages.
+                    </p>
+                    <AddYourBrandAnimation />
+                  </div>
+                ),
+              },
+              {
+                className: "md:col-span-5 !p-0 !bg-blue-600 rounded-[3rem]",
+                children: (
+                  <div className="relative overflow-hidden h-full rounded-3xl group">
+                    <MovingBorder duration={3000} rx="30%" ry="30%">
+                      <div className="h-20 w-20 opacity-[0.8] bg-[radial-gradient(circle_at_center,theme(colors.white)_0,transparent_100%)] blur-md animate-spin pointer-events-none" />
+                    </MovingBorder>
+
+                    <div className="absolute inset-[2px] bg-blue-600 rounded-[calc(1.5rem-2px)] p-8 flex flex-col z-20">
+                      <div className="relative z-10 flex-1">
+                        <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center mb-6">
+                          <Bot size={20} className="text-white" />
+                        </div>
+                        <h3 className="text-2xl font-black mb-3 text-white">Chat with Inbox</h3>
+                        <p className="text-blue-100 font-medium text-sm leading-relaxed">
+                          Ask plain-English questions about your email threads. "What did Sarah say about the proposal?"
+                        </p>
+                      </div>
+                      {/* Mock chat bubble loop */}
+                      <div className="relative mt-8 h-20 w-full pointer-events-none overflow-hidden">
+                        <motion.div
+                          initial={{ y: 80, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{
+                            duration: 0.5,
+                            delay: 0.5,
+                            repeat: Infinity,
+                            repeatType: "loop",
+                            repeatDelay: 4.5, // 5s total loop
+                          }}
+                          className="absolute top-0 right-0 left-4 bg-white/10 backdrop-blur rounded-2xl rounded-tr-sm p-3 text-sm text-white/90 font-medium border border-white/10"
+                        >
+                          "What did Sarah say about the proposal?"
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ y: 80, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{
+                            duration: 0.5,
+                            delay: 2.0, // Appears 1.5s after the first
+                            repeat: Infinity,
+                            repeatType: "loop",
+                            repeatDelay: 3.0, // 5s total loop
+                          }}
+                          className="absolute top-8 right-4 left-0 bg-blue-500/80 backdrop-blur rounded-2xl rounded-tl-sm p-3 text-sm text-white font-medium border border-blue-400/30 shadow-lg"
+                        >
+                          "Found 3 messages. Want a summary?"
+                        </motion.div>
+                      </div>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                className: "md:col-span-4",
+                children: (
+                  <div className="flex flex-col h-full">
+                    <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center mb-6">
+                      <BarChart3 className="text-violet-600" size={20} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-3">
+                      Multi-Model Hub
+                    </h3>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed flex-1">
+                      Switch between Gemini, ChatGPT, and Claude with one click.
+                    </p>
+                    <MultiModelHubAnimation />
+                  </div>
+                ),
+              },
+              {
+                className: "md:col-span-3",
+                children: (
+                  <div className="flex flex-col h-full">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-6">
+                      <Clock className="text-amber-600" size={20} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-3">
+                      Task Extraction
+                    </h3>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed">
+                      AI pulls deadlines from your inbox directly into your Master To-Do dashboard.
+                    </p>
+                    <TaskExtractionAnimation />
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </section>
+
+        {/* ─── 5. STATS SECTION ─── */}
+        <section className="relative z-10 bg-slate-950 py-20 px-6">
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+            className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 text-center text-white"
+          >
+            {[
+              { num: "0", label: "Emails Stored on Our Servers" },
+              { num: "95%", label: "Time Saved on Email Triage" },
+              { num: "$0", label: "Monthly Cost with Your Own Key" },
+            ].map(stat => (
+              <motion.div key={stat.label} variants={cardFade}>
+                <p className="text-5xl font-black tracking-tighter text-white mb-2">{stat.num}</p>
+                <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </section>
+
+        {/* ─── 6. DYNAMIC USE CASES ─── */}
+        <StickyScrollUseCases />
+
+        <section id="pricing" className="relative z-10 max-w-5xl mx-auto px-6 py-28">
+          <motion.div {...fadeUp} className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-950 mb-4">Simple, honest pricing.</h2>
+            <p className="text-slate-500 font-medium text-lg mb-10">Start for free. Upgrade when you're ready.</p>
+
+            {/* Magnetic Toggle (Hidden for BYOK layout) */}
+            <div className="hidden items-center justify-center">
+              <div className="relative flex bg-slate-100 p-1 rounded-full shadow-inner border border-slate-200/60">
+                <button
+                  onClick={() => setIsAnnual(false)}
+                  className={`relative z-10 px-8 py-2.5 rounded-full font-bold text-sm transition-colors ${!isAnnual ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Monthly
+                  {!isAnnual && (
+                    <motion.div
+                      layoutId="pricing-toggle"
+                      className="absolute inset-0 bg-white rounded-full shadow-sm border border-slate-200/50"
+                      style={{ zIndex: -1 }}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </button>
+                <button
+                  onClick={() => setIsAnnual(true)}
+                  className={`relative z-10 px-8 py-2.5 rounded-full font-bold text-sm transition-colors flex items-center gap-2 ${isAnnual ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Annually <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">Save 20%</span>
+                  {isAnnual && (
+                    <motion.div
+                      layoutId="pricing-toggle"
+                      className="absolute inset-0 bg-white rounded-full shadow-sm border border-slate-200/50"
+                      style={{ zIndex: -1 }}
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="whileInView"
+            viewport={{ once: true }}
+            className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 items-center"
+          >
+            {/* Local LLMs Card */}
+            <motion.div variants={cardFade} className="bg-white border border-gray-200 rounded-3xl p-10 shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
+              <p className="text-sm font-extrabold text-slate-400 uppercase tracking-widest mb-4">Local LLMs</p>
+              <div className="flex items-end mb-2 h-[60px]">
+                <span className="text-5xl font-black text-slate-900">$0</span>
+                <span className="text-lg font-bold text-slate-400 mb-1 ml-1">/ forever</span>
+              </div>
+              <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">Totally free and private on your own hardware.</p>
+              <ul className="space-y-4 mb-10">
+                {["100% Local Processing", "Absolute Privacy", "Zero Subscription Fees", "Offline Support"].map(f => (
+                  <li key={f} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={16} className="text-emerald-500" strokeWidth={3} /> {f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => signIn("google")} className="w-full py-3.5 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition">
+                Get Started Free
+              </button>
+            </motion.div>
+
+            {/* Cloud LLMs Card (Spotlight) */}
+            <SpotlightCard className="bg-white border-2 border-blue-400 rounded-3xl p-10 shadow-[0_10px_60px_rgba(59,130,246,0.15)] overflow-hidden ring-4 ring-blue-500/10 transition-shadow hover:shadow-[0_20px_80px_rgba(59,130,246,0.3)] z-10 scale-105">
+              <div className="absolute top-4 right-4 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-20">Recommended</div>
+              <p className="relative z-20 text-sm font-extrabold text-blue-600 uppercase tracking-widest mb-4">Cloud LLMs</p>
+
+              <div className="relative z-20 flex items-end mb-2 h-[60px] overflow-hidden">
+                <span className="text-5xl font-black text-slate-900">$0</span>
+                <span className="text-lg font-bold text-slate-400 mb-1 ml-1">/ forever</span>
+              </div>
+
+              <div className="relative z-20 inline-block bg-blue-50/80 border border-blue-100 px-3 py-1.5 rounded-lg mb-8">
+                <p className="text-blue-700 font-semibold text-xs tracking-wide">Bring your own API key. Pay only for what you use.</p>
+              </div>
+              <ul className="relative z-20 space-y-4 mb-10">
+                {["Bring your Gemini/GPT/Claude key", "Unlimited email syncing", "Unlimited Smart Labels", "AI Chat with Inbox", "Master To-Do Dashboard"].map(f => (
+                  <li key={f} className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                    <Check size={16} className="text-blue-600" strokeWidth={3} /> {f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => signIn("google")} className="relative z-20 w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40">
+                Connect API Key
+              </button>
+            </SpotlightCard>
+
+            {/* Managed Cloud Card */}
+            <motion.div variants={cardFade} className="bg-white border border-gray-200 rounded-3xl p-10 shadow-[0_10px_40px_rgba(0,0,0,0.04)] opacity-70 grayscale-[30%]">
+              <p className="text-sm font-extrabold text-slate-400 uppercase tracking-widest mb-4">Managed Cloud</p>
+              <div className="flex items-end mb-2 h-[60px]">
+                <span className="text-3xl font-black text-slate-400 mt-2 tracking-tight">Coming Soon</span>
+              </div>
+              <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">For users who don't want to manage their own API keys.</p>
+              <ul className="space-y-4 mb-10">
+                {["One flat monthly fee", "Zero API key setup", "Managed model access", "Enterprise SLA support"].map(f => (
+                  <li key={f} className="flex items-center gap-3 text-sm font-semibold text-slate-400">
+                    <Check size={16} className="text-slate-300" strokeWidth={3} /> {f}
+                  </li>
+                ))}
+              </ul>
+              <button disabled className="w-full py-3.5 border-2 border-slate-200 bg-slate-50 rounded-2xl font-bold text-slate-400 cursor-not-allowed">
+                Join Waitlist
+              </button>
+            </motion.div>
+          </motion.div>
+        </section>
+
+
+
+        {/* ─── 9. BOTTOM CTA ─── */}
+        <section className="relative z-10 px-6 pt-8 pb-32">
+          <motion.div
+            {...fadeUp}
+            className="max-w-6xl mx-auto rounded-[3.5rem] p-3 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)]"
+          >
+            <div className="bg-gradient-to-b from-[#35435e] via-[#4d6188] to-[#CDDAED] rounded-[3rem] py-24 px-8 text-center text-white relative overflow-hidden shadow-[inset_0_0_120px_rgba(0,0,0,0.8)]">
+              {/* Wireframe Dome Graphic */}
+              <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[800px] h-[400px] opacity-20 pointer-events-none z-0">
+                <svg viewBox="0 0 800 400" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                  <path d="M0 400C0 179.086 179.086 0 400 0C620.914 0 800 179.086 800 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M100 400C100 234.315 234.315 100 400 100C565.685 100 700 234.315 700 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M200 400C200 289.543 289.543 200 400 200C510.457 200 600 289.543 600 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M300 400C300 344.772 344.772 300 400 300C455.228 300 500 344.772 500 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M400 0L400 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M400 0C300 80 200 200 200 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M400 0C500 80 600 200 600 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M400 0C350 40 300 150 300 400" stroke="white" strokeWidth="1.5" />
+                  <path d="M400 0C450 40 500 150 500 400" stroke="white" strokeWidth="1.5" />
+                </svg>
+              </div>
+
+              <div className="relative z-10 flex flex-col items-center justify-center">
+                <h2 className="text-4xl md:text-5xl font-medium tracking-tight mb-8 leading-tight text-white max-w-2xl mx-auto">
+                  Build the future of email with Mail-man.
+                </h2>
+
+                {/* Sparkle Icon */}
+                <div className="mb-12 flex justify-center w-full">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]">
+                    <path d="M12 0L13.847 8.153L22 10L13.847 11.847L12 20L10.153 11.847L2 10L10.153 8.153L12 0Z" fill="white" />
+                    <path d="M19.5 4.5L18.114 6.886L15.5 8L18.114 9.114L19.5 11.5L20.886 9.114L23.5 8L20.886 6.886L19.5 4.5Z" fill="white" />
+                    <path d="M4.5 4.5L3.114 6.886L0.5 8L3.114 9.114L4.5 11.5L5.886 9.114L8.5 8L5.886 6.886L4.5 4.5Z" fill="white" />
+                  </svg>
+                </div>
+
+                <button
+                  onClick={() => signIn("google")}
+                  className="bg-white/20 backdrop-blur-xl border border-white/40 text-slate-800 shadow-[0_8px_32px_rgba(30,40,70,0.15)] hover:bg-white/30 hover:scale-105 transition-all duration-300 font-medium text-lg py-4 px-10 md:px-12 rounded-full flex items-center justify-center mx-auto"
+                  style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.4) 100%)' }}
+                >
+                  Get Started Now
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+      </main>
 
       {/* ─── 10. FOOTER ─── */}
-      <footer className="relative z-10 border-t border-gray-100 py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Mail size={14} className="text-white" strokeWidth={2.5} />
+      <footer ref={footerRef} className="fixed bottom-0 left-0 w-full z-0 border-t border-gray-200 bg-slate-50 pt-32 pb-6 flex flex-col justify-between overflow-hidden">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between w-full px-6 gap-16 mb-24 relative z-10">
+
+          {/* Left Side: Mission & Social */}
+          <div className="flex flex-col gap-6 max-w-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                <Mail size={16} className="text-white" strokeWidth={2.5} />
+              </div>
+              <span className="font-extrabold text-xl text-slate-900 tracking-tight">Mail-man</span>
             </div>
-            <span className="font-extrabold text-lg text-slate-900 tracking-tight">Mail-man</span>
+            <p className="text-slate-500 font-medium text-base leading-relaxed">
+              Mail-man: Your inbox, tamed by your own AI.
+            </p>
+            <div className="flex items-center gap-4 mt-2">
+              {/* Twitter / X */}
+              <a href="#" className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z" /><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" /></svg>
+              </a>
+              {/* GitHub */}
+              <a href="#" className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" /></svg>
+              </a>
+            </div>
           </div>
-          <div className="flex gap-8">
-            {["Privacy", "Terms", "GitHub", "Twitter"].map(l => (
-              <a key={l} href="#" className="text-sm font-semibold text-slate-400 hover:text-slate-700 transition">{l}</a>
-            ))}
+
+          {/* Right Side: Columns */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-12 md:gap-20">
+            <div className="flex flex-col gap-4">
+              <span className="font-bold text-slate-900 uppercase tracking-widest text-xs mb-1">Product</span>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Features</a>
+              <a href="#pricing" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Pricing</a>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Coming Soon</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <span className="font-bold text-slate-900 uppercase tracking-widest text-xs mb-1">Legal</span>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Privacy Policy</a>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Terms of Service</a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <span className="font-bold text-slate-900 uppercase tracking-widest text-xs mb-1">Connect</span>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Twitter</a>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">GitHub</a>
+              <a href="#" className="text-slate-500 hover:text-slate-900 font-medium text-sm transition">Contact</a>
+            </div>
           </div>
-          <p className="text-sm text-slate-400 font-medium">© 2026 Mail-man Inc.</p>
+
+        </div>
+
+        {/* Mega Typography Secret Weapon */}
+        <div className="w-full relative flex items-center justify-center pointer-events-none mt-auto">
+          <h1 className="text-[12vw] font-black tracking-tighter leading-none text-slate-800/40 text-center overflow-hidden mb-[-2vw]">
+            MAIL-MAN
+          </h1>
         </div>
       </footer>
-
     </div>
   );
 }

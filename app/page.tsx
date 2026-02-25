@@ -128,6 +128,7 @@ export default function Home() {
   const fetchEmails = async (
     mailboxToFetch = activeMailbox,
     searchString = "",
+    overrideApiKey?: string
   ) => {
     // Safety Check
     if (!(session as any)?.accessToken) return;
@@ -221,10 +222,10 @@ export default function Home() {
         }
 
         // 2. BATCH AUTO-PILOT ENGAGE
-        // Note: The API key is now stored in state (fetched from MongoDB on load!)
-        if (geminiApiKey) {
-          await classifyEmailsBatch(cleanEmails, geminiApiKey);
-          await extractTasksAndLabelsBatch(cleanEmails, geminiApiKey);
+        const currentApiKey = overrideApiKey || geminiApiKey;
+        if (currentApiKey) {
+          await classifyEmailsBatch(cleanEmails, currentApiKey);
+          await extractTasksAndLabelsBatch(cleanEmails, currentApiKey);
         }
       } else {
         setIsFetching(false);
@@ -261,11 +262,35 @@ export default function Home() {
         });
 
         if (response.status === 429) {
-          console.error("Rate limit hit, skipping this chunk...");
+          console.error("Rate limit hit! Injecting failure states into UI.");
+          // Inject a failure state so the UI stops spinning
+          const failedResults = payload.map(e => ({
+            id: e.id,
+            category: "Limit Reached",
+            summary: "Gemini API rate limit exceeded. Please try again later or add a paid API key.",
+            requires_reply: false,
+            draft_reply: ""
+          }));
+          updateEmailStateWithAiData(failedResults);
           continue;
         }
 
         const results = await response.json();
+
+        // Handle explicit backend errors (like the 8-second Timeout or API Key failures)
+        if (results.error) {
+          console.error("Backend Error:", results.error);
+          const errorResults = payload.map(e => ({
+            id: e.id,
+            category: "Error",
+            summary: `Analysis failed: ${results.error}`,
+            requires_reply: false,
+            draft_reply: ""
+          }));
+          updateEmailStateWithAiData(errorResults);
+          continue;
+        }
+
         if (Array.isArray(results)) {
           // Immediately show the new summaries (and the instantly returned cached DB summaries)
           updateEmailStateWithAiData(results);
@@ -276,6 +301,15 @@ export default function Home() {
 
       } catch (error) {
         console.error("Batch chunk failed:", error);
+        // Map over the chunk that failed so we can still shut off the loading indicators
+        const catchErrorResults = chunk.map(e => ({
+          id: e.id,
+          category: "Error",
+          summary: "Failed to connect to the analysis server. Please check your connection.",
+          requires_reply: false,
+          draft_reply: ""
+        }));
+        updateEmailStateWithAiData(catchErrorResults);
       }
     }
   };
@@ -283,16 +317,17 @@ export default function Home() {
   // Helper to keep the code clean
   const updateEmailStateWithAiData = (results: any[]) => {
     setEmails((prev) => {
-      const updated = prev.map((email) => {
+      return prev.map((email) => {
         const match = results.find((r: any) => r.id === email.id);
         return match ? { ...email, ...match } : email;
       });
-      // Refresh reading pane if active
-      if (selectedEmail) {
-        const current = updated.find(e => e.id === selectedEmail.id);
-        if (current) setSelectedEmail(current);
-      }
-      return updated;
+    });
+
+    // Refresh reading pane if active (Using updater pattern to prevent stale closures)
+    setSelectedEmail((prevSelected: any) => {
+      if (!prevSelected) return prevSelected;
+      const match = results.find((r: any) => r.id === prevSelected.id);
+      return match ? { ...prevSelected, ...match } : prevSelected;
     });
   };
 
@@ -322,19 +357,17 @@ export default function Home() {
       if (Array.isArray(results)) {
         // 1. Update emails with applied labels
         setEmails((prevEmails) => {
-          const updatedEmails = prevEmails.map((email) => {
+          return prevEmails.map((email) => {
             const result = results.find((r: any) => r.id === email.id);
             return result ? { ...email, appliedLabels: result.appliedLabels } : email;
           });
+        });
 
-          // Refresh selectedEmail if it was part of this batch
-          if (selectedEmail) {
-            const updatedSelected = updatedEmails.find(e => e.id === selectedEmail.id);
-            if (updatedSelected) {
-              setSelectedEmail(updatedSelected);
-            }
-          }
-          return updatedEmails;
+        // Refresh selectedEmail if it was part of this batch (Prevents stale closures)
+        setSelectedEmail((prevSelected: any) => {
+          if (!prevSelected) return prevSelected;
+          const result = results.find((r: any) => r.id === prevSelected.id);
+          return result ? { ...prevSelected, appliedLabels: result.appliedLabels } : prevSelected;
         });
 
         // 2. Update Global Tasks - Sync directly from MongoDB to capture the real Database IDs and skip duplicates!
@@ -369,7 +402,7 @@ export default function Home() {
       const result = results?.[0];
 
       setEmails((prevEmails) => {
-        const updatedEmails = prevEmails.map((email) =>
+        return prevEmails.map((email) =>
           email.id === id
             ? {
               ...email,
@@ -380,12 +413,20 @@ export default function Home() {
             }
             : email,
         );
+      });
 
-        // If the currently selected email just got an AI update, refresh it in the reading pane too!
-        if (selectedEmail?.id === id) {
-          setSelectedEmail(updatedEmails.find((e) => e.id === id));
+      // If the currently selected email just got an AI update, refresh it in the reading pane using updater!
+      setSelectedEmail((prevSelected: any) => {
+        if (prevSelected?.id === id) {
+          return {
+            ...prevSelected,
+            category: result.category,
+            summary: result.summary,
+            requires_reply: result.requires_reply,
+            draft_reply: result.draft_reply,
+          };
         }
-        return updatedEmails;
+        return prevSelected;
       });
     } catch (error) {
       console.error("Failed to classify:", error);
@@ -439,6 +480,13 @@ export default function Home() {
         setEmails((prevEmails) =>
           prevEmails.map((e) => e.id === email.id ? { ...e, appliedLabels: result.appliedLabels } : e)
         );
+
+        setSelectedEmail((prevSelected: any) => {
+          if (prevSelected?.id === email.id) {
+            return { ...prevSelected, appliedLabels: result.appliedLabels };
+          }
+          return prevSelected;
+        });
       }
 
     } catch (error) {
@@ -634,11 +682,15 @@ export default function Home() {
         initializationRef.current = true;
 
         // 1. Fetch User Data from MongoDB First!
+        let fetchedApiKey = "";
         try {
           const res = await fetch('/api/user');
           if (res.ok) {
             const userData = await res.json();
-            if (userData.geminiApiKey) setGeminiApiKey(userData.geminiApiKey);
+            if (userData.geminiApiKey) {
+              setGeminiApiKey(userData.geminiApiKey);
+              fetchedApiKey = userData.geminiApiKey;
+            }
             if (userData.openAiApiKey) setOpenAiApiKey(userData.openAiApiKey);
             if (userData.anthropicApiKey) setAnthropicApiKey(userData.anthropicApiKey);
             if (userData.customLabels) setCustomLabels(userData.customLabels);
@@ -658,8 +710,8 @@ export default function Home() {
           }
         }
 
-        // 3. Perform a silent background fetch to sync any new emails
-        fetchEmails();
+        // 3. Perform a silent background fetch to sync any new emails (Supply key explicitly to dodge stale closures)
+        fetchEmails(undefined, undefined, fetchedApiKey);
       }
     };
     initializeApp();

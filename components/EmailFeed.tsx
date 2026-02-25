@@ -156,20 +156,20 @@ export default function EmailFeed({
 
   return (
     <section
-      className={`h-screen overflow-y-auto bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-slate-700 flex-col transition-all duration-300 ${selectedEmail
+      className={`h-screen overflow-y-auto bg-white dark:bg-slate-950/50 dark:backdrop-blur-xl border-r border-gray-100 dark:border-white/5 flex-col transition-all duration-300 ${selectedEmail
         ? "hidden md:flex md:w-[450px] shrink-0"
         : "flex flex-1 w-full"
         }`}
     >
       {/* THE HEADER */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 p-3 pt-4 border-b border-gray-100 dark:border-slate-700 flex flex-col gap-3">
+      <div className="sticky top-0 z-10 bg-white dark:bg-transparent p-3 pt-4 border-b border-gray-100 dark:border-white/5 flex flex-col gap-3">
         {/* ROW 1: ACTIONS & SEARCH */}
         <div className="flex items-center justify-between gap-1">
           <div className="flex items-center gap-0.5 shrink-0">
             {onToggleSidebar && (
               <button
                 onClick={onToggleSidebar}
-                className="p-2.5 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition"
+                className="p-2.5 text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition"
                 title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
               >
                 {isSidebarCollapsed ? <PanelLeftOpen size={18} strokeWidth={1.5} /> : <PanelLeftClose size={18} strokeWidth={1.5} />}
@@ -188,8 +188,8 @@ export default function EmailFeed({
             </button>
           </div>
 
-          <div className="flex-1 flex items-center bg-[#f1f3f4] dark:bg-slate-800 rounded-full px-4 py-2.5 focus-within:bg-white dark:focus-within:bg-slate-700 focus-within:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] transition-all border border-transparent group min-w-[150px]">
-            <Search size={20} strokeWidth={1.5} className="text-gray-500 mr-3 shrink-0" />
+          <div className="flex-1 flex items-center bg-[#f1f3f4] dark:bg-white/5 rounded-full px-4 py-2.5 focus-within:bg-white dark:focus-within:bg-white/10 focus-within:shadow-[0_1px_2px_0_rgba(60,64,67,0.3),0_1px_3px_1px_rgba(60,64,67,0.15)] transition-all border border-transparent dark:border-white/10 group min-w-[150px]">
+            <Search size={20} strokeWidth={1.5} className="text-gray-500 dark:text-slate-400 mr-3 shrink-0" />
             <input
               type="text"
               placeholder="Search..."
@@ -198,7 +198,7 @@ export default function EmailFeed({
               onKeyDown={(e) => {
                 if (e.key === "Enter") onSearch(searchQuery);
               }}
-              className="bg-transparent border-none outline-none text-[15.5px] font-medium text-gray-900 w-full placeholder-gray-500 placeholder:font-normal"
+              className="bg-transparent border-none outline-none text-[15.5px] font-medium text-gray-900 dark:text-white w-full placeholder-gray-500 dark:placeholder-slate-500 placeholder:font-normal"
             />
             {/* Filter settings inside search */}
             <button
@@ -226,7 +226,7 @@ export default function EmailFeed({
 
           {/* The Floating Menu */}
           {isFilterOpen && (
-            <div className="absolute right-0 top-0 mt-2 w-[340px] bg-white border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 font-sans">
+            <div className="absolute right-0 top-0 mt-2 w-[340px] bg-white dark:bg-slate-900 dark:border-white/10 border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 font-sans">
               {/* Header & Clear Button */}
               <div className="px-5 py-4 bg-gray-50/80 border-b border-gray-100 flex justify-between items-center">
                 <span className="text-[13px] font-bold text-gray-700 tracking-wide uppercase">
@@ -431,7 +431,7 @@ export default function EmailFeed({
       </div>
 
       {/* THE EMAIL LIST */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-0 pb-20 md:pb-4 bg-white dark:bg-slate-900">
+      <div className="flex-1 overflow-y-auto scrollbar-hide space-y-0 pb-20 md:pb-4 bg-white dark:bg-transparent">
         {filteredEmails.length === 0 ? (
 
           /* --- THE EMPTY STATE UI --- */
@@ -479,15 +479,15 @@ export default function EmailFeed({
             return (
               <div key={email.id}>
                 {showSeparator && (
-                  <div className="px-5 py-2.5 text-[11px] font-bold text-gray-500 dark:text-slate-500 mt-2 tracking-wide">
+                  <div className="px-5 py-2.5 text-[11px] font-bold text-gray-500 dark:text-slate-400 mt-2 tracking-wide">
                     {currentCategory}
                   </div>
                 )}
                 <div
                   onClick={() => onSelect(email)}
-                  className={`group relative flex items-center gap-4 py-3 px-3 border border-transparent border-b-gray-200 dark:border-b-slate-700 cursor-pointer transition-colors duration-[50ms] ${isSelected
-                    ? "bg-[#eaf1fb] dark:bg-blue-900/30 mx-2 rounded-[20px] border-b-transparent shadow-[0_1px_3px_rgba(0,0,0,0.05)] z-10 my-1"
-                    : "bg-white dark:bg-slate-900 hover:bg-[#f8f9fa] dark:hover:bg-slate-800 hover:rounded-[12px] hover:border-transparent hover:mx-1 hover:px-4 hover:shadow-[0_1px_4px_rgba(0,0,0,0.08)] z-0 hover:z-10"
+                  className={`group relative flex items-center gap-4 py-3 px-3 border border-transparent border-b-gray-200 dark:border-b-white/5 cursor-pointer transition-colors duration-[50ms] ${isSelected
+                    ? "bg-[#eaf1fb] dark:bg-white/10 dark:backdrop-blur-md mx-2 rounded-[20px] dark:border-white/10 border-b-transparent shadow-[0_1px_3px_rgba(0,0,0,0.05)] z-10 my-1"
+                    : "bg-white dark:bg-transparent hover:bg-[#f8f9fa] dark:hover:bg-white/5 hover:rounded-[12px] hover:border-transparent hover:mx-1 hover:px-4 hover:shadow-[0_1px_4px_rgba(0,0,0,0.08)] z-0 hover:z-10"
                     }`}
                 >
                   <div className="flex items-center gap-2.5 pl-1 shrink-0">
@@ -509,7 +509,7 @@ export default function EmailFeed({
                           {senderName}
                         </h3>
                         {/* Time only shows if NOT hovering */}
-                        <span className={`text-[12px] shrink-0 group-hover:hidden md:block md:group-hover:hidden ${isSelected ? "text-gray-800 dark:text-slate-300 font-semibold" : (email.isUnread ? "text-gray-900 dark:text-white font-bold" : "text-gray-500 dark:text-slate-500 font-medium")}`}>
+                        <span className={`text-[12px] shrink-0 group-hover:hidden md:block md:group-hover:hidden ${isSelected ? "text-gray-800 dark:text-slate-300 font-semibold" : (email.isUnread ? "text-gray-900 dark:text-white font-bold" : "text-gray-500 dark:text-slate-400 font-medium")}`}>
                           {formatTime(email.date)}
                         </span>
                       </div>
@@ -538,7 +538,7 @@ export default function EmailFeed({
                     </div>
 
                     {/* Hover Actions - Pushes from the right side instead of overlaying purely */}
-                    <div className="hidden group-hover:flex items-center gap-2 pl-4 bg-[#f8f9fa] shrink-0 relative z-10">
+                    <div className="hidden group-hover:flex items-center gap-2 pl-4 bg-[#f8f9fa] dark:bg-transparent shrink-0 relative z-10">
                       <button
                         onClick={(e) => { e.stopPropagation(); onAction(email.id, "tag"); }}
                         className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-200 rounded-full transition" title="Tag"

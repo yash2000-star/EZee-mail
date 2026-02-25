@@ -16,7 +16,11 @@ const EmailAnalysisSchema = new mongoose.Schema({
     summary: String,
     requires_reply: Boolean,
     draft_reply: String,
-    appliedLabels: [String]
+    appliedLabels: [String],
+    tasks_extracted: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true });
 
 export default mongoose.models.EmailAnalysis || mongoose.model('EmailAnalysis', EmailAnalysisSchema);

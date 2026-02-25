@@ -63,8 +63,8 @@ export default function Sidebar({
             onClick={onClick}
             title={label}
             className={`flex items-center justify-center w-[48px] h-[48px] rounded-full transition-colors duration-200 ${active
-              ? "bg-[#d3e3fd] text-[#0b57d0] dark:bg-blue-900/50 dark:text-blue-300"
-              : "text-[#444746] hover:bg-[#e1e5ea] dark:text-slate-400 dark:hover:bg-slate-700"
+              ? "bg-[#d3e3fd] text-[#0b57d0] dark:bg-white/20 dark:text-white"
+              : "text-[#444746] hover:bg-[#e1e5ea] dark:text-slate-400 dark:hover:bg-white/10 dark:transition-colors"
               }`}
           >
             {icon}
@@ -77,8 +77,8 @@ export default function Sidebar({
       <button
         onClick={onClick}
         className={`w-full flex items-center justify-between px-3 py-1.5 text-[14px] font-medium transition-colors duration-200 ${active
-          ? "bg-[#d3e3fd] text-[#0b57d0] rounded-r-full -ml-3 pl-6 font-bold dark:bg-blue-900/50 dark:text-blue-300"
-          : "text-[#444746] hover:bg-[#e1e5ea] rounded-r-full -ml-3 pl-6 dark:text-slate-400 dark:hover:bg-slate-700"
+          ? "bg-[#d3e3fd] text-[#0b57d0] rounded-r-full -ml-3 pl-6 font-bold dark:bg-white/20 dark:text-white"
+          : "text-[#444746] hover:bg-[#e1e5ea] rounded-r-full -ml-3 pl-6 dark:text-slate-400 dark:hover:bg-white/10 dark:transition-colors"
           }`}
       >
         <div className="flex items-center gap-4">
@@ -87,13 +87,13 @@ export default function Sidebar({
           ) : (
             <div className="w-[14px] -ml-4"></div>
           )}
-          <span className={`${active ? "text-[#0b57d0] dark:text-blue-300" : "text-[#444746] dark:text-slate-400"}`}>
+          <span className={`${active ? "text-[#0b57d0] dark:text-white" : "text-[#444746] dark:text-slate-400"}`}>
             {icon}
           </span>
-          {!isCollapsed && <span className={active ? "text-[#0b57d0] dark:text-blue-300" : "text-[#444746] dark:text-slate-400"}>{label}</span>}
+          {!isCollapsed && <span className={active ? "text-[#0b57d0] dark:text-white" : "text-[#444746] dark:text-slate-400"}>{label}</span>}
         </div>
         {!isCollapsed && count && (
-          <span className="text-xs text-gray-500 dark:text-slate-500 pr-2">
+          <span className="text-xs text-gray-500 dark:text-slate-400 pr-2">
             {count}
           </span>
         )}
@@ -102,7 +102,7 @@ export default function Sidebar({
   };
 
   return (
-    <aside className={`${isCollapsed ? 'w-20' : 'w-[250px]'} flex flex-col bg-white dark:bg-slate-900 h-screen transition-all duration-300 shrink-0 z-10 font-sans`}>
+    <aside className={`${isCollapsed ? 'w-20' : 'w-[250px]'} flex flex-col bg-white dark:bg-slate-950/50 dark:backdrop-blur-xl dark:border-r dark:border-white/5 h-screen transition-all duration-300 shrink-0 z-10 font-sans`}>
 
       {/* 1. Header */}
       <div className={`p-4 flex items-center h-16 shrink-0 mt-1 ${isCollapsed ? "justify-center px-0 mt-2" : "justify-between pl-[22px] pr-3"}`}>
@@ -130,13 +130,13 @@ export default function Sidebar({
       </div>
 
       {/* 2. The Main Gray Rounded Card */}
-      <div className={`flex-1 flex flex-col bg-[#f6f8fc] dark:bg-slate-800 transition-all duration-300 overflow-hidden relative ${isCollapsed ? "mx-2 rounded-[24px]" : "mr-3 ml-1 rounded-2xl"}`}>
+      <div className={`flex-1 flex flex-col bg-[#f6f8fc] dark:bg-white/5 dark:backdrop-blur-xl dark:border dark:border-white/10 transition-all duration-300 overflow-hidden relative ${isCollapsed ? "mx-2 dark:rounded-2xl rounded-[24px]" : "mr-3 ml-1 dark:rounded-2xl rounded-2xl"}`}>
 
         {/* Compose Button */}
-        <div className={`mb-5 mt-6 border-b border-gray-200/50 dark:border-slate-700/50 pb-5 ${isCollapsed ? "flex justify-center mt-6 px-2" : "pl-4"}`}>
+        <div className={`mb-5 mt-6 border-b border-gray-200/50 dark:border-white/10 pb-5 ${isCollapsed ? "flex justify-center mt-6 px-2" : "pl-4"}`}>
           <button
             onClick={onCompose}
-            className={`bg-white dark:bg-slate-700 hover:shadow-md text-[#001d35] dark:text-white font-medium rounded-2xl transition-all flex items-center justify-center shadow-sm border border-gray-100 dark:border-slate-600 ${isCollapsed ? "w-[44px] h-[44px] p-0 rounded-xl" : "py-3 px-4 text-[13.5px] gap-3 w-fit"}`}
+            className={`bg-white dark:bg-white/10 dark:backdrop-blur-md dark:border dark:border-white/20 dark:text-white dark:hover:bg-white/20 hover:shadow-md text-[#001d35] font-medium rounded-2xl transition-all flex items-center justify-center shadow-sm border border-gray-100 ${isCollapsed ? "w-[44px] h-[44px] p-0 rounded-xl" : "py-3 px-4 text-[13.5px] gap-3 w-fit"}`}
           >
             <div className="relative flex items-center justify-center">
               <Pencil size={18} strokeWidth={1.5} className="text-gray-700 dark:text-slate-300" />
@@ -164,12 +164,12 @@ export default function Sidebar({
                   <button
                     onClick={() => onSelectMailbox(label.name)}
                     className={`w-full flex items-center justify-between px-4 py-2 text-[14px] font-medium transition-all duration-200 ${isActive
-                      ? "bg-[#f2f6fc] dark:bg-blue-900/30 text-[#0b57d0] dark:text-blue-300 font-bold rounded-r-full -ml-3 pl-7"
-                      : "text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-r-full -ml-3 pl-7"
+                      ? "bg-[#f2f6fc] dark:bg-white/20 text-[#0b57d0] dark:text-white font-bold rounded-r-full -ml-3 pl-7"
+                      : "text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10 dark:transition-colors rounded-r-full -ml-3 pl-7"
                       }`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`w-2.5 h-2.5 rounded-full outline outline-1 outline-gray-200 dark:outline-slate-600 ${dotColorClass}`} />
+                      <div className={`w-2.5 h-2.5 rounded-full outline outline-1 outline-gray-200 dark:outline-white/10 ${dotColorClass}`} />
                       {!isCollapsed && <span className="truncate pr-4">{label.name}</span>}
                     </div>
                   </button>
@@ -181,8 +181,8 @@ export default function Sidebar({
                         setOpenMenuId(openMenuId === label.name ? null : label.name);
                       }}
                       className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-all ${openMenuId === label.name
-                        ? "opacity-100 bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-white"
-                        : "opacity-0 group-hover:opacity-100 text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-800 dark:hover:text-white"
+                        ? "opacity-100 bg-gray-200 dark:bg-white/20 text-gray-800 dark:text-white"
+                        : "opacity-0 group-hover:opacity-100 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 dark:hover:text-white"
                         }`}
                     >
                       <MoreHorizontal size={14} />
@@ -192,11 +192,11 @@ export default function Sidebar({
                   {openMenuId === label.name && !isCollapsed && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} />
-                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-[0_10px_40px_rgba(0,0,0,0.2)] rounded-xl overflow-hidden z-[9999] animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex flex-col p-1.5 border-b border-gray-100 dark:border-slate-700">
-                          <button className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition">
+                      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 w-56 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.2)] rounded-xl overflow-hidden z-[9999] animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex flex-col p-1.5 border-b border-gray-100 dark:border-white/10">
+                          <button className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 transition-colors rounded-lg">
                             <span>Edit</span>
-                            <Edit2 size={14} className="text-gray-400 dark:text-slate-500" />
+                            <Edit2 size={14} className="text-gray-400 dark:text-slate-400" />
                           </button>
                           <button
                             onClick={() => {
@@ -242,7 +242,7 @@ export default function Sidebar({
           <div className="mt-6">
             {!isCollapsed && (
               <div
-                className="px-3 py-2 text-[12px] font-bold text-gray-500 dark:text-slate-500 flex items-center justify-between cursor-pointer hover:text-gray-700 dark:hover:text-slate-300 transition-colors"
+                className="px-3 py-2 text-[12px] font-bold text-gray-500 dark:text-slate-400 flex items-center justify-between cursor-pointer hover:text-gray-700 dark:hover:text-white transition-colors"
                 onClick={() => setIsMailboxesOpen(!isMailboxesOpen)}
               >
                 <span>Mailboxes</span>
@@ -267,7 +267,7 @@ export default function Sidebar({
               )}
 
               {!isCollapsed && isMoreOpen && (
-                <div className="pl-4 space-y-1 border-l ml-4 mt-2 animate-in slide-in-from-top-2 duration-200 border-gray-200 dark:border-slate-700">
+                <div className="pl-4 space-y-1 border-l ml-4 mt-2 animate-in slide-in-from-top-2 duration-200 border-gray-200 dark:border-white/10">
                   <NavItem icon={<Tag size={16} strokeWidth={1.5} className="-rotate-45" />} label="Conversation History" active={activeMailbox === "Conversation History"} onClick={() => onSelectMailbox("Conversation History")} />
                   <NavItem icon={<Tag size={16} strokeWidth={1.5} className="-rotate-45" />} label="GMass Auto Followup" active={activeMailbox === "GMass Auto Followup"} onClick={() => onSelectMailbox("GMass Auto Followup")} />
                   <NavItem icon={<Tag size={16} strokeWidth={1.5} className="-rotate-45" />} label="GMass Reports" active={activeMailbox === "GMass Reports"} onClick={() => onSelectMailbox("GMass Reports")} hasChevron={true} />
@@ -279,13 +279,15 @@ export default function Sidebar({
         </div>
 
         {/* 4. User Profile Footer */}
-        <div className="p-4 bg-[#f8f9fa] dark:bg-slate-900 mt-auto">
-          <div className="flex items-center justify-between bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 p-2 rounded-xl transition cursor-pointer group shadow-sm border border-gray-100 dark:border-slate-700">
-            <div className="flex items-center gap-3 overflow-hidden pl-1">
+        <div className="p-4 bg-[#f8f9fa] dark:bg-transparent mt-auto">
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 p-2 rounded-xl transition cursor-pointer group shadow-sm border border-gray-100 dark:border-white/10`}>
+
+            {/* Left Side: Avatar + Name (or just Avatar if collapsed) */}
+            <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? '' : 'pl-1'}`}>
               {session?.user?.image ? (
-                <img src={session.user.image} alt="User" className="w-10 h-10 rounded-full shrink-0 object-cover" />
+                <img src={session.user.image} alt="User" className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-full object-cover" />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-[#8b23a5] flex items-center justify-center text-white font-semibold shrink-0 text-lg">
+                <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-full bg-[#8b23a5] flex items-center justify-center text-white font-semibold text-[14px]">
                   {session?.user?.name?.charAt(0) || "Y"}
                 </div>
               )}
@@ -300,34 +302,24 @@ export default function Sidebar({
               )}
             </div>
 
+            {/* Right Side: Action Icons (Hidden if collapsed) */}
             {!isCollapsed && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 shrink-0">
                 {/* Dark Mode Toggle */}
                 <button
                   onClick={toggleTheme}
-                  className="text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition p-1.5 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg"
+                  className="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded-lg"
                   title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                 >
-                  {isDark ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
+                  {isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
                 </button>
-                <button onClick={onOpenSettings} className="text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition p-1.5 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg" title="Settings">
-                  <Settings size={20} strokeWidth={1.5} />
+                <button onClick={onOpenSettings} className="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded-lg" title="Settings">
+                  <Settings size={18} strokeWidth={1.5} />
                 </button>
-                <button onClick={() => signOut({ callbackUrl: '/' })} className="text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition p-1.5 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg" title="Sign Out">
-                  <LogOut size={20} strokeWidth={1.5} />
+                <button onClick={() => signOut({ callbackUrl: '/' })} className="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded-lg" title="Sign Out">
+                  <LogOut size={18} strokeWidth={1.5} />
                 </button>
               </div>
-            )}
-
-            {/* Collapsed Dark Mode Toggle */}
-            {isCollapsed && (
-              <button
-                onClick={toggleTheme}
-                className="text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white transition p-1.5 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-lg absolute bottom-16 left-1/2 -translate-x-1/2"
-                title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              >
-                {isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
-              </button>
             )}
           </div>
         </div>

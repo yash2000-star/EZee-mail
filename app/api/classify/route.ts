@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/mongodb";
 import EmailAnalysis from "@/models/EmailAnalysis";
+import * as cheerio from "cheerio";
 
 export async function POST(req: Request) {
   try {
@@ -56,9 +57,23 @@ export async function POST(req: Request) {
     });
 
     // 3. We format all the NEW emails into one massive text block for Gemini to read
-    const emailListText = emailsToProcess.map((e: any) =>
-      `EMAIL_ID: ${e.id}\nSENDER: ${e.sender}\nCONTENT: ${e.snippet}\n---`
-    ).join("\n\n");
+    const emailListText = emailsToProcess.map((e: any) => {
+      // 3a. Use Cheerio to strip ALL HTML explicitly (head, scripts, navs, styles)
+      const $ = cheerio.load(e.snippet || "");
+      $('script, style, nav, footer, iframe, noscript').remove();
+      let cleanText = $('body').text() || $.text();
+
+      // 3b. Remove excessive newlines, tabs, and weird spacing
+      cleanText = cleanText.replace(/\s+/g, ' ').trim();
+
+      // 3c. TRUNCATE: Aggressively cut to a max of 15k characters (approx 3,000 tokens)
+      const MAX_CHARS = 15000;
+      if (cleanText.length > MAX_CHARS) {
+        cleanText = cleanText.slice(0, MAX_CHARS) + "...[TRUNCATED]";
+      }
+
+      return `EMAIL_ID: ${e.id}\nSENDER: ${e.sender}\nCONTENT: ${cleanText}\n---`;
+    }).join("\n\n");
 
     // 4. We instruct the AI to return an ARRAY of answers, matching the exact IDs
     const prompt = `
@@ -85,7 +100,29 @@ export async function POST(req: Request) {
       ]
     `;
 
-    const result = await model.generateContent(prompt);
+    // 5. Strict 8-second Timeout (AbortController) to prevent infinite hangs
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    let result;
+    try {
+      result = await model.generateContent(prompt, { signal: controller.signal } as any);
+      clearTimeout(timeoutId);
+    } catch (apiError: any) {
+      clearTimeout(timeoutId);
+      if (apiError.name === 'AbortError' || apiError.message?.includes('abort')) {
+        console.error("Gemini Classification Timeout: Dropping overly complex batch.");
+        return NextResponse.json({ error: "Request timed out. The emails were too complex or the server is busy." }, { status: 504 });
+      }
+
+      // Pass the 429 quota error explicitly back to the frontend
+      if (apiError.status === 429 || apiError.message?.includes('429')) {
+        return NextResponse.json({ error: "API Rate limit exceeded." }, { status: 429 });
+      }
+
+      console.error("Gemini API Error:", apiError);
+      return NextResponse.json({ error: apiError.message }, { status: 500 });
+    }
     let text = await result.response.text();
     text = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
 
@@ -115,7 +152,7 @@ export async function POST(req: Request) {
       return NextResponse.json([...combinedResults, ...parsedData]);
     } catch (parseError) {
       console.error("Batch JSON Parse Error:", text);
-      return NextResponse.json(combinedResults); // Fail gracefully, returning what we have cached at least
+      return NextResponse.json({ error: "Failed to parse AI response. It may have been cut off." }, { status: 500 });
     }
 
   } catch (error: any) {
