@@ -99,7 +99,6 @@ export async function POST(req: Request) {
 
       } else {
 
-        // Default to Google Gemini 1.5 Pro
         const genAI = new GoogleGenerativeAI(apiKey);
         const geminiModel = genAI.getGenerativeModel({
           model: "gemini-2.5-flash",
@@ -125,11 +124,11 @@ export async function POST(req: Request) {
       });
 
     } catch (aiError: any) {
-      console.error(`🚨 ${model} API CRASHED:`, aiError);
+      console.error(`${model} API CRASHED:`, aiError);
       return NextResponse.json({ error: `Connection to ${model} failed. Please verify your selected API key in Settings.` }, { status: 500 });
     }
   } catch (error: any) {
-    console.error("🚨 CHAT ROUTE OUTER CRASH:", error);
+    console.error("CHAT ROUTE OUTER CRASH:", error);
     return NextResponse.json({ error: `Failed to process request: ${error?.message || String(error)}` }, { status: 500 });
   }
 }

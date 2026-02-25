@@ -100,7 +100,6 @@ export async function POST(req: Request) {
       ]
     `;
 
-    // 5. Strict 8-second Timeout (AbortController) to prevent infinite hangs
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -115,7 +114,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Request timed out. The emails were too complex or the server is busy." }, { status: 504 });
       }
 
-      // Pass the 429 quota error explicitly back to the frontend
       if (apiError.status === 429 || apiError.message?.includes('429')) {
         return NextResponse.json({ error: "API Rate limit exceeded." }, { status: 429 });
       }

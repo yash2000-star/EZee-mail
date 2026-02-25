@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 
 // import Quill dynamically so Next.js doesn't crash on the server
-// Cast to `any` to allow passing a `ref` (dynamic import doesn't forward refs in TS types)
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false }) as any;
 
 const LANGUAGES = [

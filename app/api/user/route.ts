@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         const user = await User.findOneAndUpdate(
             { email: session.user.email },
             { $set: updateData },
-            { new: true, upsert: true } // Upsert is handy to create them instantly
+            { new: true, upsert: true } 
         );
 
         return NextResponse.json(user, { status: 200 });

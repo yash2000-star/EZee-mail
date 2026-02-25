@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    // Define tone rules dynamically based on selected style
     let styleInstruction = "Make the tone more professional, clear, and polite.";
     if (style === "Concise") {
       styleInstruction = "Make the tone extremely concise and brief. Get straight to the point in as few words as possible.";
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
 
     const hasMeaningfulDraft = draft && draft.trim() !== "" && draft !== "<p><br></p>";
 
-    // The Prompt: We explicitly tell it to preserve HTML tags
+    // The Prompt
     const prompt = `
       You are an elite executive copywriter. 
       
@@ -48,7 +47,7 @@ export async function POST(req: Request) {
     const response = await result.response;
     let enhancedText = response.text().trim();
 
-    // Safety check: Sometimes Gemini stubbornly adds markdown wrappers anyway. Let's strip them if they exist.
+    // Sometimes Gemini stubbornly adds markdown wrappers 
     if (enhancedText.startsWith("```html")) {
       enhancedText = enhancedText.replace(/^```html\n?/, "").replace(/\n?```$/, "");
     } else if (enhancedText.startsWith("```")) {

@@ -28,7 +28,6 @@ export async function POST(req: Request) {
         ? JSON.stringify(customLabels)
         : "No custom labels provided.";
 
-    // 🔥 Build batch email text
     const emailListText = emails
       .map(
         (e: any) =>
