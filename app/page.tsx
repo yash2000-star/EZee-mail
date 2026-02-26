@@ -11,6 +11,7 @@ import SmartLabelModal from "@/components/SmartLabelModal";
 import ToDoDashboard from "@/components/ToDoDashboard";
 
 import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
   Sparkles,
@@ -32,6 +33,7 @@ import {
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [emails, setEmails] = useState<any[]>([]);
   const [isFetching, setIsFetching] = useState(false);
 
@@ -52,6 +54,8 @@ export default function Home() {
   const [openAiApiKey, setOpenAiApiKey] = useState("");
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [isScanningTasks, setIsScanningTasks] = useState(false);
+  // Prevents flash of dashboard before the API-key check completes
+  const [isCheckingKey, setIsCheckingKey] = useState(true);
 
   // Find a specific header from the list
   const getHeader = (headers: any[], name: string) => {
@@ -243,7 +247,11 @@ export default function Home() {
   // --- ⚡ UPGRADED SAFETY BATCH PROCESSING ---
 
   const classifyEmailsBatch = async (allEmails: any[], apiKey: string) => {
-    if (!apiKey) return;
+    if (!apiKey) {
+      // No key — open the settings modal so the user can add one
+      setIsSettingsOpen(true);
+      return;
+    }
 
     // The backend now intelligently filters out already classified emails!
     // We just pass the entire batch directly to the secure route.
@@ -277,13 +285,16 @@ export default function Home() {
 
         const results = await response.json();
 
-        // Handle explicit backend errors (like the 8-second Timeout or API Key failures)
+        // Handle explicit backend errors (timeout, invalid key, etc.)
         if (results.error) {
           console.error("Backend Error:", results.error);
+          const isTimeout = results.error.toLowerCase().includes("timed out") || results.error.toLowerCase().includes("timeout");
           const errorResults = payload.map(e => ({
             id: e.id,
             category: "Error",
-            summary: `Analysis failed: ${results.error}`,
+            summary: isTimeout
+              ? "Summary unavailable (Timeout — server was busy, try refreshing)"
+              : `Summary unavailable (${results.error})`,
             requires_reply: false,
             draft_reply: ""
           }));
@@ -690,6 +701,10 @@ export default function Home() {
             if (userData.geminiApiKey) {
               setGeminiApiKey(userData.geminiApiKey);
               fetchedApiKey = userData.geminiApiKey;
+            } else {
+              // New user with no API key — send to the onboarding setup page
+              router.replace("/setup");
+              return; // keep isCheckingKey=true so nothing flashes before redirect
             }
             if (userData.openAiApiKey) setOpenAiApiKey(userData.openAiApiKey);
             if (userData.anthropicApiKey) setAnthropicApiKey(userData.anthropicApiKey);
@@ -699,6 +714,9 @@ export default function Home() {
         } catch (e) {
           console.error("Error fetching user profile:", e);
         }
+
+        // Key check is done — safe to reveal the dashboard
+        setIsCheckingKey(false);
 
         // 2. Load the super-fast UI cached emails
         const cached = localStorage.getItem("ezee_mail_cache_Inbox");
@@ -718,6 +736,21 @@ export default function Home() {
   }, [session]);
 
   if (session) {
+    // Block render until the API-key check is done — prevents flash of dashboard UI before redirect
+    if (isCheckingKey) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-slate-950">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-10 h-10">
+              <div className="absolute inset-0 rounded-full border-2 border-slate-700" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-violet-500 animate-spin" style={{ animationDuration: "0.9s" }} />
+            </div>
+            <p className="text-slate-500 text-sm font-medium animate-pulse">Loading workspace...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       //  Locks the screen height
       <div className="flex h-screen bg-[#f8f9fa] dark:bg-slate-950 text-gray-900 dark:text-slate-100 font-sans overflow-hidden selection:bg-blue-500/20 relative">
